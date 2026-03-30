@@ -1,0 +1,34 @@
+Hasil pengukuran panjang dan lebar sebidang tanah berbentuk empat persegi panjang adalah 12,23 m dan 14,3 m. Luas tanah menurut aturan angka penting adalah ….
+A. 174,8890 m2
+B. 174,889 m2
+C. 174,89 m2
+D. 174,8 m2
+E. 175 m2
+
+Sebuah partikel bergerak dengan vector posisi r = (2t² – t)i – (t³ + t)j dalam satuan SI. Besar kecepatan partikel pada t = 1 s adalah ….
+A. 1 m/s
+B. 3 m/s
+C. 4 m/s
+D. 5 m/s
+E. 7 m/s
+
+Berdasarkan grafik hubungan v terhadap t di bawah ini, jarak yang di tempuh benda selama 10 detik adalah....
+A. 18 m
+B. 30 m
+C. 50 m
+D. 60 m
+E. 80 m
+
+Dua buah vektor F1 = 10 N dan F2 = 15 N membentuk sudut 60°. Besar resultan kedua vektor tersebut adalah ….
+A. 21,8 N
+B. 22,8 N
+C. 23,8 N
+D. 24,8 N
+E. 25,8 N
+
+Sebuah benda bergerak dengan kecepatan awal 20 m/s dan mengalami perlambatan 5 m/s². Waktu yang dibutuhkan hingga benda berhenti adalah ….
+A. 2 s
+B. 3 s
+C. 4 s
+D. 5 s
+E. 6 s

@@ -1,0 +1,2229 @@
+<!doctype html>
+<html lang="id" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Ujian ANBK</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .sidebar-number {
+      transition: all 0.2s;
+    }
+    
+    .sidebar-number:hover {
+      transform: scale(1.05);
+    }
+    
+    .warning-overlay {
+      animation: pulse 1s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.95; }
+      50% { opacity: 1; }
+    }
+    
+    .countdown-number {
+      font-size: 120px;
+      font-weight: 900;
+      text-shadow: 0 0 30px rgba(239, 68, 68, 0.8);
+      animation: countdownPulse 1s ease-in-out infinite;
+    }
+    
+    @keyframes countdownPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    .question-card {
+      transition: box-shadow 0.3s;
+    }
+    
+    .question-card:hover {
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com/3.4.17" type="text/javascript"></script>
+ </head>
+ <body class="h-full w-full bg-gradient-to-br from-blue-50 to-blue-100">
+  <div id="app" class="h-full w-full overflow-auto"></div>
+  <script>
+    const defaultConfig = {
+      exam_title: "ASESMEN SUMATIF AKHIR SEMESTER GENAP KELAS XII",
+      subject: "MATA PELAJARAN INFORMATIKA",
+      academic_year: "TAHUN PELAJARAN 2025/2026",
+      duration_text: "90 menit",
+      total_questions_text: "50 soal",
+      primary_color: "#1e40af",
+      secondary_color: "#3b82f6",
+      background_color: "#eff6ff",
+      text_color: "#1e293b",
+      warning_color: "#ef4444"
+    };
+
+    const ADMIN_PASSWORD = "112233";
+    const DURATION_MINUTES = 90;
+    const MAX_VIOLATIONS = 3;
+    const WARNING_COUNTDOWN = 10;
+    
+    let currentState = {
+      page: 'start',
+      studentName: '',
+      studentClass: '',
+      currentQuestion: 0,
+      answers: {},
+      doubtful: new Set(),
+      timeLeft: DURATION_MINUTES * 60,
+      timerInterval: null,
+      violations: 0,
+      warningTimeout: null,
+      warningCountdown: WARNING_COUNTDOWN,
+      warningInterval: null,
+      isAdminMode: false,
+      startTime: null,
+      isSaving: false
+    };
+
+    let examResults = [];
+    let isLoadingResults = true;
+
+    const dataHandler = {
+      onDataChanged(data) {
+        examResults = data || [];
+        isLoadingResults = false;
+        // Re-render when data changes
+        if (currentState.page === 'admin' && currentState.adminTab === 'results') {
+          render();
+        }
+      }
+    };
+
+    const questions = [
+      {
+        content: "Dalam Microsoft Excel, fungsi yang digunakan untuk menghitung rata-rata dari sekumpulan data adalah...",
+        image: null,
+        options: ["=SUM()", "=AVERAGE()", "=COUNT()", "=MAX()", "=MIN()"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Shortcut keyboard untuk menyimpan file di Microsoft Excel adalah...",
+        image: null,
+        options: ["Ctrl + P", "Ctrl + S", "Ctrl + O", "Ctrl + N", "Ctrl + W"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk membuat grafik di Excel, menu yang digunakan adalah...",
+        image: null,
+        options: ["Home", "Insert", "Page Layout", "Formulas", "Data"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi IF di Excel digunakan untuk...",
+        image: null,
+        options: ["Menghitung jumlah data", "Membuat keputusan berdasarkan kondisi", "Mencari nilai maksimum", "Mengurutkan data", "Menghitung rata-rata"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Ekstensi file default untuk Microsoft Excel adalah...",
+        image: null,
+        options: [".doc", ".ppt", ".xlsx", ".txt", ".pdf"],
+        answer: "C",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk menggabungkan beberapa sel menjadi satu, fitur yang digunakan adalah...",
+        image: null,
+        options: ["Split Cells", "Merge Cells", "Combine Cells", "Join Cells", "Unite Cells"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =SUM(A1:A10) akan menghitung...",
+        image: null,
+        options: ["Rata-rata dari A1 sampai A10", "Jumlah total dari A1 sampai A10", "Nilai maksimum dari A1 sampai A10", "Jumlah sel dari A1 sampai A10", "Nilai minimum dari A1 sampai A10"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk membekukan baris atau kolom di Excel, fitur yang digunakan adalah...",
+        image: null,
+        options: ["Lock Panes", "Freeze Panes", "Hold Panes", "Stop Panes", "Fix Panes"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =COUNT() digunakan untuk...",
+        image: null,
+        options: ["Menghitung jumlah total", "Menghitung jumlah sel berisi angka", "Menghitung rata-rata", "Menghitung nilai maksimum", "Menghitung nilai minimum"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk membuat tabel pivot di Excel, menu yang digunakan adalah...",
+        image: null,
+        options: ["Home", "Insert", "Data", "Review", "View"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Shortcut keyboard untuk membuat file baru di Excel adalah...",
+        image: null,
+        options: ["Ctrl + N", "Ctrl + O", "Ctrl + S", "Ctrl + W", "Ctrl + P"],
+        answer: "A",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk mencetak dokumen Excel, shortcut yang digunakan adalah...",
+        image: null,
+        options: ["Ctrl + S", "Ctrl + P", "Ctrl + O", "Ctrl + N", "Ctrl + W"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =MAX() digunakan untuk mencari...",
+        image: null,
+        options: ["Nilai minimum", "Nilai maksimum", "Rata-rata", "Jumlah total", "Jumlah data"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =MIN() digunakan untuk mencari...",
+        image: null,
+        options: ["Nilai maksimum", "Nilai minimum", "Rata-rata", "Jumlah total", "Jumlah data"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk mengatur lebar kolom di Excel, kita dapat melakukan dengan cara...",
+        image: null,
+        options: ["Klik kanan pada baris", "Double klik pada batas kolom", "Tekan Ctrl + W", "Klik menu File", "Tekan F5"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Shortcut untuk menyalin data di Excel adalah...",
+        image: null,
+        options: ["Ctrl + X", "Ctrl + C", "Ctrl + V", "Ctrl + Z", "Ctrl + A"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Shortcut untuk menempel (paste) data di Excel adalah...",
+        image: null,
+        options: ["Ctrl + X", "Ctrl + C", "Ctrl + V", "Ctrl + Z", "Ctrl + A"],
+        answer: "C",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Shortcut untuk memotong (cut) data di Excel adalah...",
+        image: null,
+        options: ["Ctrl + X", "Ctrl + C", "Ctrl + V", "Ctrl + Z", "Ctrl + A"],
+        answer: "A",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk membatalkan perintah terakhir (undo) di Excel, shortcut yang digunakan adalah...",
+        image: null,
+        options: ["Ctrl + Y", "Ctrl + Z", "Ctrl + X", "Ctrl + C", "Ctrl + V"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk mengulangi perintah yang dibatalkan (redo) di Excel, shortcut yang digunakan adalah...",
+        image: null,
+        options: ["Ctrl + Y", "Ctrl + Z", "Ctrl + X", "Ctrl + C", "Ctrl + V"],
+        answer: "A",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk memilih semua sel di worksheet Excel, shortcut yang digunakan adalah...",
+        image: null,
+        options: ["Ctrl + A", "Ctrl + S", "Ctrl + C", "Ctrl + V", "Ctrl + X"],
+        answer: "A",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =COUNTA() digunakan untuk...",
+        image: null,
+        options: ["Menghitung sel berisi angka", "Menghitung sel yang tidak kosong", "Menghitung jumlah total", "Mencari nilai maksimum", "Mencari nilai minimum"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Format penulisan rumus di Excel selalu diawali dengan tanda...",
+        image: null,
+        options: ["#", "@", "=", "&", "*"],
+        answer: "C",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk mengubah format sel menjadi mata uang, menu yang digunakan adalah...",
+        image: null,
+        options: ["Format Cells > Number", "Format Cells > Currency", "Format Cells > Text", "Format Cells > Date", "Format Cells > Time"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Shortcut untuk membuka dialog Find (Pencarian) di Excel adalah...",
+        image: null,
+        options: ["Ctrl + F", "Ctrl + H", "Ctrl + G", "Ctrl + P", "Ctrl + O"],
+        answer: "A",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Shortcut untuk membuka dialog Replace (Ganti) di Excel adalah...",
+        image: null,
+        options: ["Ctrl + F", "Ctrl + H", "Ctrl + G", "Ctrl + P", "Ctrl + O"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk menyisipkan baris baru di Excel, klik kanan pada baris lalu pilih...",
+        image: null,
+        options: ["Delete", "Insert", "Format", "Hide", "Unhide"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk menyisipkan kolom baru di Excel, klik kanan pada kolom lalu pilih...",
+        image: null,
+        options: ["Delete", "Insert", "Format", "Hide", "Unhide"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =NOW() di Excel digunakan untuk menampilkan...",
+        image: null,
+        options: ["Tanggal saja", "Waktu saja", "Tanggal dan waktu saat ini", "Tahun saja", "Bulan saja"],
+        answer: "C",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =TODAY() di Excel digunakan untuk menampilkan...",
+        image: null,
+        options: ["Tanggal hari ini", "Waktu saat ini", "Tanggal dan waktu", "Tahun saja", "Bulan saja"],
+        answer: "A",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk mengatur tinggi baris di Excel, kita dapat melakukan dengan cara...",
+        image: null,
+        options: ["Klik kanan pada kolom", "Double klik pada batas baris", "Tekan Ctrl + H", "Klik menu Insert", "Tekan F2"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =LEN() di Excel digunakan untuk...",
+        image: null,
+        options: ["Menghitung jumlah angka", "Menghitung panjang teks", "Menghitung rata-rata", "Menghitung total", "Menghitung maksimum"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk membuat teks menjadi tebal (bold) di Excel, shortcut yang digunakan adalah...",
+        image: null,
+        options: ["Ctrl + B", "Ctrl + I", "Ctrl + U", "Ctrl + T", "Ctrl + K"],
+        answer: "A",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk membuat teks menjadi miring (italic) di Excel, shortcut yang digunakan adalah...",
+        image: null,
+        options: ["Ctrl + B", "Ctrl + I", "Ctrl + U", "Ctrl + T", "Ctrl + K"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk membuat teks menjadi bergaris bawah (underline) di Excel, shortcut yang digunakan adalah...",
+        image: null,
+        options: ["Ctrl + B", "Ctrl + I", "Ctrl + U", "Ctrl + T", "Ctrl + K"],
+        answer: "C",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =UPPER() di Excel digunakan untuk...",
+        image: null,
+        options: ["Mengubah teks menjadi huruf kecil", "Mengubah teks menjadi huruf kapital", "Menghitung panjang teks", "Menggabungkan teks", "Memotong teks"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =LOWER() di Excel digunakan untuk...",
+        image: null,
+        options: ["Mengubah teks menjadi huruf kecil", "Mengubah teks menjadi huruf kapital", "Menghitung panjang teks", "Menggabungkan teks", "Memotong teks"],
+        answer: "A",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =CONCATENATE() atau & di Excel digunakan untuk...",
+        image: null,
+        options: ["Memisahkan teks", "Menggabungkan teks", "Menghitung teks", "Mengubah teks", "Menghapus teks"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk mengurutkan data dari A ke Z (ascending), menu yang digunakan adalah...",
+        image: null,
+        options: ["Home > Sort A to Z", "Data > Sort A to Z", "Insert > Sort", "Review > Sort", "View > Sort"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk mengurutkan data dari Z ke A (descending), menu yang digunakan adalah...",
+        image: null,
+        options: ["Home > Sort Z to A", "Data > Sort Z to A", "Insert > Sort", "Review > Sort", "View > Sort"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk menyembunyikan kolom di Excel, klik kanan pada kolom lalu pilih...",
+        image: null,
+        options: ["Delete", "Insert", "Format", "Hide", "Unhide"],
+        answer: "D",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk menampilkan kembali kolom yang tersembunyi, klik kanan lalu pilih...",
+        image: null,
+        options: ["Delete", "Insert", "Format", "Hide", "Unhide"],
+        answer: "E",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =ROUND() di Excel digunakan untuk...",
+        image: null,
+        options: ["Membulatkan angka", "Menghitung rata-rata", "Menghitung jumlah", "Mencari maksimum", "Mencari minimum"],
+        answer: "A",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk memberikan border (garis tepi) pada sel, menu yang digunakan adalah...",
+        image: null,
+        options: ["Home > Font", "Home > Borders", "Insert > Borders", "Data > Borders", "View > Borders"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk mengubah warna background sel, menu yang digunakan adalah...",
+        image: null,
+        options: ["Font Color", "Fill Color", "Border Color", "Text Color", "Cell Color"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk mengubah warna teks di sel, menu yang digunakan adalah...",
+        image: null,
+        options: ["Font Color", "Fill Color", "Border Color", "Background Color", "Cell Color"],
+        answer: "A",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =LEFT() di Excel digunakan untuk...",
+        image: null,
+        options: ["Mengambil karakter dari kanan", "Mengambil karakter dari kiri", "Mengambil karakter dari tengah", "Menghitung karakter", "Menggabungkan karakter"],
+        answer: "B",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =RIGHT() di Excel digunakan untuk...",
+        image: null,
+        options: ["Mengambil karakter dari kanan", "Mengambil karakter dari kiri", "Mengambil karakter dari tengah", "Menghitung karakter", "Menggabungkan karakter"],
+        answer: "A",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Fungsi =MID() di Excel digunakan untuk...",
+        image: null,
+        options: ["Mengambil karakter dari kanan", "Mengambil karakter dari kiri", "Mengambil karakter dari tengah", "Menghitung karakter", "Menggabungkan karakter"],
+        answer: "C",
+        difficulty: "REGULER"
+      },
+      {
+        content: "Untuk membuat dropdown list di Excel, fitur yang digunakan adalah...",
+        image: null,
+        options: ["Sort", "Filter", "Data Validation", "Conditional Formatting", "Pivot Table"],
+        answer: "C",
+        difficulty: "REGULER"
+      }
+    ];
+
+    function saveToStorage() {
+      localStorage.setItem('examState', JSON.stringify({
+        studentName: currentState.studentName,
+        studentClass: currentState.studentClass,
+        answers: currentState.answers,
+        doubtful: Array.from(currentState.doubtful),
+        timeLeft: currentState.timeLeft,
+        violations: currentState.violations
+      }));
+    }
+
+    function loadFromStorage() {
+      const saved = localStorage.getItem('examState');
+      if (saved) {
+        const data = JSON.parse(saved);
+        currentState.studentName = data.studentName || '';
+        currentState.studentClass = data.studentClass || '';
+        currentState.answers = data.answers || {};
+        currentState.doubtful = new Set(data.doubtful || []);
+        currentState.timeLeft = data.timeLeft || DURATION_MINUTES * 60;
+        currentState.violations = data.violations || 0;
+      }
+    }
+
+    function clearStorage() {
+      localStorage.removeItem('examState');
+    }
+
+    function hasOngoingExam() {
+      const saved = localStorage.getItem('examState');
+      if (!saved) return false;
+      
+      try {
+        const data = JSON.parse(saved);
+        return data.studentName && data.studentClass && data.timeLeft > 0;
+      } catch {
+        return false;
+      }
+    }
+
+    function hasCompletedExam(name, className) {
+      return examResults.some(result => 
+        result.student_name === name && result.student_class === className
+      );
+    }
+
+    window.continueExam = () => {
+      loadFromStorage();
+      currentState.page = 'exam';
+      startTimer();
+      render();
+    };
+
+    function formatTime(seconds) {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function startTimer() {
+      if (currentState.timerInterval) clearInterval(currentState.timerInterval);
+      
+      currentState.timerInterval = setInterval(() => {
+        currentState.timeLeft--;
+        saveToStorage();
+        
+        const timerEl = document.getElementById('timer');
+        if (timerEl) {
+          timerEl.textContent = formatTime(currentState.timeLeft);
+          
+          if (currentState.timeLeft <= 300) {
+            timerEl.classList.add('text-red-600', 'font-bold');
+          }
+        }
+        
+        if (currentState.timeLeft <= 0) {
+          clearInterval(currentState.timerInterval);
+          submitExam();
+        }
+        
+        render();
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (currentState.timerInterval) {
+        clearInterval(currentState.timerInterval);
+        currentState.timerInterval = null;
+      }
+    }
+
+    function showWarning() {
+      currentState.violations++;
+      currentState.warningCountdown = WARNING_COUNTDOWN;
+      saveToStorage();
+      
+      if (currentState.violations >= MAX_VIOLATIONS) {
+        submitExam();
+        return;
+      }
+      
+      currentState.page = 'warning';
+      render();
+      
+      if (currentState.warningInterval) clearInterval(currentState.warningInterval);
+      
+      currentState.warningInterval = setInterval(() => {
+        currentState.warningCountdown--;
+        
+        const countdownEl = document.getElementById('warningCountdown');
+        if (countdownEl) {
+          countdownEl.textContent = currentState.warningCountdown;
+        }
+        
+        if (currentState.warningCountdown <= 0) {
+          clearInterval(currentState.warningInterval);
+          submitExam();
+        }
+      }, 1000);
+      
+      if (currentState.warningTimeout) clearTimeout(currentState.warningTimeout);
+      
+      currentState.warningTimeout = setTimeout(() => {
+        submitExam();
+      }, WARNING_COUNTDOWN * 1000);
+    }
+
+    function returnToExam() {
+      if (currentState.warningTimeout) clearTimeout(currentState.warningTimeout);
+      if (currentState.warningInterval) clearInterval(currentState.warningInterval);
+      
+      currentState.page = 'exam';
+      render();
+    }
+
+    function setupAntiCheat() {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && currentState.page === 'exam') {
+          stopTimer();
+          showWarning();
+        }
+      });
+      
+      window.addEventListener('blur', () => {
+        if (currentState.page === 'exam') {
+          stopTimer();
+          showWarning();
+        }
+      });
+      
+      window.addEventListener('focus', () => {
+        if (currentState.page === 'exam' && currentState.timerInterval === null) {
+          startTimer();
+        }
+      });
+      
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+            (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+            (e.ctrlKey && e.key === 'U')) {
+          e.preventDefault();
+          return false;
+        }
+      });
+      
+      document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        return false;
+      });
+    }
+
+    async function submitExam() {
+      stopTimer();
+      if (currentState.warningTimeout) clearTimeout(currentState.warningTimeout);
+      if (currentState.warningInterval) clearInterval(currentState.warningInterval);
+      
+      currentState.isSaving = true;
+      
+      const config = window.elementSdk?.config || defaultConfig;
+      const score = calculateScore();
+      const answered = Object.keys(currentState.answers).length;
+      const correct = Math.round((score / 100) * questions.length);
+      const timeTaken = DURATION_MINUTES * 60 - currentState.timeLeft;
+      
+      const resultData = {
+        student_name: currentState.studentName,
+        student_class: currentState.studentClass,
+        exam_title: config.exam_title,
+        score: parseFloat(score.toFixed(2)),
+        correct_answers: correct,
+        total_questions: questions.length,
+        answered: answered,
+        violations: currentState.violations,
+        submitted_at: new Date().toISOString(),
+        answers: JSON.stringify(currentState.answers),
+        time_taken: timeTaken
+      };
+      
+      if (window.dataSdk) {
+        const result = await window.dataSdk.create(resultData);
+        if (result.isError) {
+          console.error('Error saving exam result:', result.error);
+        }
+      }
+      
+      currentState.isSaving = false;
+      currentState.page = 'result';
+      render();
+    }
+
+    function calculateScore() {
+      let correct = 0;
+      questions.forEach((q, index) => {
+        const answer = currentState.answers[index];
+        if (answer === q.answer) {
+          correct++;
+        }
+      });
+      return (correct / questions.length) * 100;
+    }
+
+    function getAnswerStatus(index) {
+      if (currentState.doubtful.has(index)) return 'doubtful';
+      if (currentState.answers[index]) return 'answered';
+      return 'unanswered';
+    }
+
+    function renderStartPage() {
+      const config = window.elementSdk?.config || defaultConfig;
+      
+      return `
+        <div class="min-h-full flex items-center justify-center p-6" style="background: linear-gradient(135deg, ${config.background_color} 0%, #dbeafe 100%);">
+          <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl">
+            <div class="text-center mb-8">
+              <div class="inline-block p-4 rounded-full mb-4" style="background-color: ${config.primary_color};">
+                <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+              <h1 class="text-3xl font-bold mb-2" style="color: ${config.text_color};">${config.exam_title}</h1>
+              <p class="text-lg mb-1 font-semibold" style="color: ${config.secondary_color};">${config.subject}</p>
+              <p class="text-base mb-4" style="color: ${config.text_color};">${config.academic_year}</p>
+              <div class="flex justify-center gap-6 text-sm" style="color: ${config.text_color};">
+                <div class="flex items-center gap-2">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <span>${config.duration_text}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                  </svg>
+                  <span>${config.total_questions_text}</span>
+                </div>
+              </div>
+            </div>
+            
+            <form id="startForm" class="space-y-6">
+              <div>
+                <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Nama Lengkap</label>
+                <input type="text" id="studentName" required 
+                  class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all"
+                  style="border-color: ${config.secondary_color}; focus:border-color: ${config.primary_color};"
+                  placeholder="Masukkan nama lengkap Anda">
+              </div>
+              
+              <div>
+                <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Kelas</label>
+                <input type="text" id="studentClass" required 
+                  class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-all"
+                  style="border-color: ${config.secondary_color}; focus:border-color: ${config.primary_color};"
+                  placeholder="Contoh: XII IPA 1">
+              </div>
+              
+              <div class="rounded-lg p-4" style="background-color: #fef3c7; border-left: 4px solid #f59e0b;">
+                <div class="flex items-start gap-3">
+                  <svg class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                  </svg>
+                  <div>
+                    <h3 class="font-bold text-yellow-900 mb-2">⚠️ PERHATIAN SISTEM ANTI-CHEATING</h3>
+                    <ul class="text-sm text-yellow-800 space-y-1">
+                      <li>• DILARANG pindah tab atau minimize browser</li>
+                      <li>• Pelanggaran maksimal: <strong>3 kali</strong></li>
+                      <li>• Peringatan akan muncul dengan countdown <strong>10 detik</strong></li>
+                      <li>• Jika tidak kembali dalam 10 detik: <strong>OTOMATIS SUBMIT</strong></li>
+                      <li>• Lebih dari 3 pelanggaran: <strong>LANGSUNG SUBMIT</strong></li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <button type="submit" 
+                class="w-full text-white font-bold py-4 rounded-lg transition-all transform hover:scale-105 shadow-lg"
+                style="background-color: ${config.primary_color};">
+                MULAI UJIAN
+              </button>
+              
+              ${hasOngoingExam() ? `
+                <button type="button" onclick="continueExam()" 
+                  class="w-full text-white font-bold py-4 rounded-lg transition-all transform hover:scale-105 shadow-lg"
+                  style="background-color: #10b981;">
+                  ▶️ LANJUTKAN UJIAN
+                </button>
+              ` : `
+                <button type="button" onclick="showAdminLogin()" 
+                  class="w-full text-gray-600 font-semibold py-3 rounded-lg border-2 border-gray-300 hover:border-gray-400 transition-all">
+                  🔐 Akses Guru
+                </button>
+              `}
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAdminPanel() {
+      const config = window.elementSdk?.config || defaultConfig;
+      const adminTab = currentState.adminTab || 'questions';
+      
+      return `
+        <div class="min-h-full p-6" style="background: linear-gradient(135deg, ${config.background_color} 0%, #dbeafe 100%);">
+          <div class="max-w-7xl mx-auto">
+            <div class="bg-white rounded-2xl shadow-2xl p-8 mb-6">
+              <div class="flex justify-between items-center mb-6">
+                <div>
+                  <h1 class="text-3xl font-bold" style="color: ${config.text_color};">👨‍🏫 Panel Guru</h1>
+                  <p class="text-sm mt-1" style="color: ${config.secondary_color};">Kelola ujian dan lihat hasil peserta</p>
+                </div>
+                <button onclick="exitAdminMode()" 
+                  class="px-6 py-2 rounded-lg font-semibold text-white"
+                  style="background-color: ${config.warning_color};">
+                  ← Keluar
+                </button>
+              </div>
+              
+              <!-- Tab Navigation -->
+              <div class="flex gap-2 mb-6 border-b-2" style="border-color: ${config.secondary_color};">
+                <button onclick="switchAdminTab('questions')" 
+                  class="px-6 py-3 font-semibold transition-all ${adminTab === 'questions' ? 'text-white' : 'text-gray-600'}"
+                  style="${adminTab === 'questions' ? `background-color: ${config.primary_color}; border-radius: 8px 8px 0 0;` : ''}">
+                  📝 Kelola Soal (${questions.length})
+                </button>
+                <button onclick="switchAdminTab('results')" 
+                  class="px-6 py-3 font-semibold transition-all ${adminTab === 'results' ? 'text-white' : 'text-gray-600'}"
+                  style="${adminTab === 'results' ? `background-color: ${config.primary_color}; border-radius: 8px 8px 0 0;` : ''}">
+                  📊 Rekap Nilai (${examResults.length})
+                </button>
+              </div>
+              
+              ${adminTab === 'questions' ? renderAdminQuestions(config) : renderAdminResults(config)}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAdminQuestions(config) {
+      return `
+        <div>
+          <div class="flex gap-3 mb-6">
+            <button onclick="addNewQuestion()" 
+              class="px-6 py-2 rounded-lg font-semibold text-white flex items-center gap-2"
+              style="background-color: #10b981;">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+              Tambah Soal
+            </button>
+          </div>
+          
+          <div class="space-y-6">
+            ${questions.map((q, index) => `
+                  <div class="p-6 rounded-lg border-2" style="border-color: ${config.secondary_color};">
+                    <div class="flex justify-between items-start mb-4">
+                      <div class="flex items-center gap-3">
+                        <span class="text-xl font-bold" style="color: ${config.primary_color};">Soal ${index + 1}</span>
+                        <select onchange="updateDifficulty(${index}, this.value)" 
+                          class="px-3 py-1 rounded text-sm font-semibold border-2"
+                          style="border-color: ${config.secondary_color};">
+                          <option value="REGULER" ${q.difficulty === 'REGULER' ? 'selected' : ''}>REGULER</option>
+                          <option value="HOTS" ${q.difficulty === 'HOTS' ? 'selected' : ''}>HOTS</option>
+                        </select>
+                      </div>
+                      
+                      <div class="flex gap-2">
+                        ${index > 0 ? `
+                          <button onclick="moveQuestion(${index}, -1)" 
+                            class="p-2 rounded hover:bg-gray-100"
+                            title="Pindah ke atas">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                            </svg>
+                          </button>
+                        ` : ''}
+                        ${index < questions.length - 1 ? `
+                          <button onclick="moveQuestion(${index}, 1)" 
+                            class="p-2 rounded hover:bg-gray-100"
+                            title="Pindah ke bawah">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                          </button>
+                        ` : ''}
+                        <button onclick="deleteQuestion(${index})" 
+                          class="p-2 rounded text-white"
+                          style="background-color: ${config.warning_color};"
+                          title="Hapus soal">
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                      <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Pertanyaan:</label>
+                      <textarea onchange="updateQuestion(${index}, this.value)" 
+                        class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none"
+                        style="border-color: ${config.secondary_color};"
+                        rows="3">${q.content}</textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                      <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Gambar Soal (opsional):</label>
+                      <div class="flex gap-3 items-start">
+                        <input type="text" 
+                          value="${q.image || ''}" 
+                          onchange="updateQuestionImage(${index}, this.value)"
+                          placeholder="Masukkan URL gambar (https://...)"
+                          class="flex-1 px-4 py-2 border-2 rounded-lg focus:outline-none"
+                          style="border-color: ${config.secondary_color};">
+                        ${q.image ? `
+                          <button onclick="removeQuestionImage(${index})" 
+                            class="px-4 py-2 rounded text-white text-sm font-semibold"
+                            style="background-color: ${config.warning_color};">
+                            Hapus
+                          </button>
+                        ` : ''}
+                      </div>
+                      ${q.image ? `
+                        <div class="mt-3">
+                          <img src="${q.image}" alt="Preview" class="rounded-lg border-2 max-w-md shadow-md" 
+                            style="border-color: ${config.secondary_color};" loading="lazy"
+                            onerror="console.error('Image failed to load:', this.src); this.style.background='#e5e7eb'; this.alt='Gambar gagal dimuat';">
+                        </div>
+                      ` : ''}
+                    </div>
+                    
+                    <div class="mb-4">
+                      <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Pilihan Jawaban:</label>
+                      <div class="space-y-2">
+                        ${q.options.map((opt, optIndex) => {
+                          const letter = String.fromCharCode(65 + optIndex);
+                          return `
+                            <div class="flex items-center gap-3">
+                              <input type="radio" name="answer${index}" value="${letter}" 
+                                ${q.answer === letter ? 'checked' : ''}
+                                onchange="updateAnswer(${index}, '${letter}')"
+                                class="w-5 h-5">
+                              <span class="font-bold w-8">${letter}.</span>
+                              <input type="text" value="${opt}" 
+                                onchange="updateOption(${index}, ${optIndex}, this.value)"
+                                class="flex-1 px-3 py-2 border-2 rounded focus:outline-none"
+                                style="border-color: ${config.secondary_color};">
+                            </div>
+                          `;
+                        }).join('')}
+                      </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 text-sm">
+                      <span style="color: ${config.text_color};">Kunci Jawaban: </span>
+                      <span class="px-3 py-1 rounded font-bold text-white" style="background-color: #10b981;">
+                        ${q.answer}
+                      </span>
+                    </div>
+                  </div>
+                `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAdminResults(config) {
+      // Calculate statistics
+      const totalResults = examResults.length;
+      const avgScore = totalResults > 0 ? (examResults.reduce((sum, r) => sum + r.score, 0) / totalResults).toFixed(2) : 0;
+      const passCount = examResults.filter(r => r.score >= 70).length;
+      const passPercentage = totalResults > 0 ? ((passCount / totalResults) * 100).toFixed(1) : 0;
+      
+      // Sort by score descending
+      const sortedResults = [...examResults].sort((a, b) => b.score - a.score);
+      
+      return `
+        <div>
+          <!-- Statistics Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="p-6 rounded-xl" style="background: linear-gradient(135deg, ${config.primary_color} 0%, ${config.secondary_color} 100%);">
+              <div class="text-white text-sm font-semibold opacity-90 mb-2">Total Peserta</div>
+              <div class="text-white text-3xl font-bold">${totalResults}</div>
+            </div>
+            <div class="p-6 rounded-xl" style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);">
+              <div class="text-white text-sm font-semibold opacity-90 mb-2">Nilai Rata-rata</div>
+              <div class="text-white text-3xl font-bold">${avgScore}</div>
+            </div>
+            <div class="p-6 rounded-xl" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+              <div class="text-white text-sm font-semibold opacity-90 mb-2">Lulus (≥70)</div>
+              <div class="text-white text-3xl font-bold">${passCount}</div>
+            </div>
+            <div class="p-6 rounded-xl" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+              <div class="text-white text-sm font-semibold opacity-90 mb-2">Persentase Lulus</div>
+              <div class="text-white text-3xl font-bold">${passPercentage}%</div>
+            </div>
+          </div>
+          
+          ${totalResults === 0 ? `
+            <div class="p-12 text-center rounded-xl" style="background-color: ${config.background_color};">
+              <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <p class="text-gray-500 text-lg font-semibold">Belum ada hasil ujian</p>
+              <p class="text-gray-400 text-sm mt-2">Hasil ujian peserta akan muncul di sini</p>
+            </div>
+          ` : `
+            <!-- Results Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead>
+                  <tr style="background-color: ${config.primary_color}; color: white;">
+                    <th class="px-6 py-3 text-left font-semibold">#</th>
+                    <th class="px-6 py-3 text-left font-semibold">Nama Peserta</th>
+                    <th class="px-6 py-3 text-left font-semibold">Kelas</th>
+                    <th class="px-6 py-3 text-center font-semibold">Nilai</th>
+                    <th class="px-6 py-3 text-center font-semibold">Benar/Total</th>
+                    <th class="px-6 py-3 text-center font-semibold">Status</th>
+                    <th class="px-6 py-3 text-center font-semibold">Pelanggaran</th>
+                    <th class="px-6 py-3 text-left font-semibold">Waktu Selesai</th>
+                    <th class="px-6 py-3 text-center font-semibold">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${sortedResults.map((result, index) => {
+                    const formatDate = (isoString) => {
+                      const date = new Date(isoString);
+                      return date.toLocaleDateString('id-ID', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
+                    };
+                    
+                    const isPass = result.score >= 70;
+                    
+                    return `
+                      <tr style="border-bottom: 1px solid #e5e7eb; ${index % 2 === 0 ? `background-color: ${config.background_color}` : ''}">
+                        <td class="px-6 py-4 font-semibold" style="color: ${config.primary_color};">${index + 1}</td>
+                        <td class="px-6 py-4 font-semibold" style="color: ${config.text_color};">${result.student_name}</td>
+                        <td class="px-6 py-4" style="color: ${config.text_color};">${result.student_class}</td>
+                        <td class="px-6 py-4 text-center">
+                          <span class="px-4 py-2 rounded-lg font-bold text-white ${isPass ? '' : ''}"
+                            style="background-color: ${isPass ? '#10b981' : config.warning_color};">
+                            ${result.score.toFixed(1)}
+                          </span>
+                        </td>
+                        <td class="px-6 py-4 text-center" style="color: ${config.text_color};">
+                          <strong>${result.correct_answers}</strong>/${result.total_questions}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                          <span class="px-3 py-1 rounded-full text-xs font-bold text-white"
+                            style="background-color: ${isPass ? '#10b981' : config.warning_color};">
+                            ${isPass ? '✓ LULUS' : '✗ TIDAK LULUS'}
+                          </span>
+                        </td>
+                        <td class="px-6 py-4 text-center" style="color: ${config.text_color};">
+                          <span class="px-3 py-1 rounded font-semibold ${result.violations > 0 ? 'text-white' : 'text-gray-500'}"
+                            style="background-color: ${result.violations > 0 ? config.warning_color : '#e5e7eb'};">
+                            ${result.violations > 0 ? result.violations : '-'}
+                          </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm" style="color: ${config.text_color};">
+                          ${formatDate(result.submitted_at)}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                          <button onclick="viewResultDetail('${result.__backendId}')" 
+                            class="px-4 py-2 rounded-lg text-white font-semibold text-sm"
+                            style="background-color: ${config.primary_color};">
+                            Detail
+                          </button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Export Button -->
+            <div class="mt-6">
+              <button onclick="exportResultsToCSV()" 
+                class="px-6 py-3 rounded-lg font-semibold text-white flex items-center gap-2"
+                style="background-color: #10b981;">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Download CSV
+              </button>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    function renderExamPage() {
+      const config = window.elementSdk?.config || defaultConfig;
+      const question = questions[currentState.currentQuestion];
+      const answered = Object.keys(currentState.answers).length;
+      const unanswered = questions.length - answered;
+      const doubtfulCount = currentState.doubtful.size;
+      
+      return `
+        <div class="h-full flex flex-col" style="background-color: ${config.background_color};">
+          <!-- Header -->
+          <div class="shadow-md p-4" style="background-color: ${config.primary_color};">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+              <div class="text-white">
+                <h2 class="text-xl font-bold">${config.exam_title}</h2>
+                <p class="text-sm opacity-90">${currentState.studentName} - ${currentState.studentClass}</p>
+              </div>
+              <div class="text-right">
+                <div class="text-white text-sm mb-1">Sisa Waktu</div>
+                <div id="timer" class="text-white text-2xl font-bold">${formatTime(currentState.timeLeft)}</div>
+                <div class="text-white text-xs mt-1">Pelanggaran: ${currentState.violations}/${MAX_VIOLATIONS}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar -->
+            <div class="w-64 bg-white shadow-lg p-4 overflow-y-auto">
+              <div class="mb-4">
+                <h3 class="font-bold text-sm mb-2" style="color: ${config.text_color};">Status Jawaban</h3>
+                <div class="space-y-2 text-xs">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded" style="background-color: ${config.primary_color};"></div>
+                    <span>Sudah Dijawab: ${answered}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded bg-gray-200"></div>
+                    <span>Belum Dijawab: ${unanswered}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded" style="background-color: ${config.warning_color};"></div>
+                    <span>Ragu-ragu: ${doubtfulCount}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="border-t pt-4">
+                <h3 class="font-bold text-sm mb-3" style="color: ${config.text_color};">Nomor Soal</h3>
+                <div class="grid grid-cols-5 gap-2">
+                  ${questions.map((_, index) => {
+                    const status = getAnswerStatus(index);
+                    let bgColor = '#e5e7eb';
+                    if (status === 'answered') bgColor = config.primary_color;
+                    if (status === 'doubtful') bgColor = config.warning_color;
+                    
+                    const isActive = index === currentState.currentQuestion;
+                    
+                    return `
+                      <button onclick="goToQuestion(${index})" 
+                        class="sidebar-number w-10 h-10 rounded font-semibold text-sm flex items-center justify-center ${isActive ? 'ring-2 ring-offset-2' : ''}"
+                        style="background-color: ${bgColor}; color: white; ${isActive ? 'ring-color: ' + config.secondary_color : ''}">
+                        ${index + 1}
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="flex-1 overflow-y-auto p-6">
+              <div class="max-w-4xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-8 question-card mb-6">
+                  <div class="flex justify-between items-center mb-6">
+                    <div>
+                      <span class="px-3 py-1 rounded-full text-xs font-semibold text-white" 
+                        style="background-color: ${question.difficulty === 'HOTS' ? '#dc2626' : config.secondary_color};">
+                        ${question.difficulty}
+                      </span>
+                      <span class="ml-2 font-bold text-lg" style="color: ${config.text_color};">
+                        Soal ${currentState.currentQuestion + 1} dari ${questions.length}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div class="mb-6">
+                    <p class="text-lg leading-relaxed" style="color: ${config.text_color};">${question.content}</p>
+                    ${question.image ? `<img src="${question.image}" alt="Gambar soal" class="mt-4 rounded-lg max-w-full h-auto shadow-md" loading="lazy" onerror="console.error('Image failed to load:', this.src); this.style.background='#e5e7eb'; this.alt='Gambar tidak tersedia';">` : ''}
+                  </div>
+                  
+                  <div class="space-y-3">
+                    ${question.options.map((option, idx) => {
+                      const letter = String.fromCharCode(65 + idx);
+                      const isSelected = currentState.answers[currentState.currentQuestion] === letter;
+                      
+                      return `
+                        <button onclick="selectAnswer('${letter}')" 
+                          class="w-full text-left p-4 rounded-lg border-2 transition-all hover:shadow-md"
+                          style="border-color: ${isSelected ? config.primary_color : '#e5e7eb'}; background-color: ${isSelected ? config.background_color : 'white'};">
+                          <span class="font-bold mr-3" style="color: ${config.primary_color};">${letter}.</span>
+                          <span style="color: ${config.text_color};">${option}</span>
+                        </button>
+                      `;
+                    }).join('')}
+                  </div>
+                  
+                  <div class="mt-6 flex items-center gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" 
+                        ${currentState.doubtful.has(currentState.currentQuestion) ? 'checked' : ''}
+                        onchange="toggleDoubtful()"
+                        class="w-5 h-5 rounded">
+                      <span class="text-sm font-semibold" style="color: ${config.text_color};">Ragu-ragu</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="flex justify-between gap-4">
+                  <button onclick="previousQuestion()" 
+                    ${currentState.currentQuestion === 0 ? 'disabled' : ''}
+                    class="px-6 py-3 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style="background-color: ${config.secondary_color}; color: white;">
+                    ← Soal Sebelumnya
+                  </button>
+                  
+                  ${currentState.currentQuestion === questions.length - 1 ? `
+                    <button onclick="confirmSubmit()" 
+                      class="px-8 py-3 rounded-lg font-bold transition-all shadow-lg"
+                      style="background-color: #10b981; color: white;">
+                      SELESAI UJIAN
+                    </button>
+                  ` : `
+                    <button onclick="nextQuestion()" 
+                      class="px-6 py-3 rounded-lg font-semibold transition-all"
+                      style="background-color: ${config.secondary_color}; color: white;">
+                      Soal Selanjutnya →
+                    </button>
+                  `}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderWarningPage() {
+      const config = window.elementSdk?.config || defaultConfig;
+      
+      return `
+        <div class="warning-overlay h-full w-full flex items-center justify-center p-6" 
+          style="background-color: ${config.warning_color};">
+          <div class="bg-white rounded-2xl shadow-2xl p-12 max-w-2xl text-center">
+            <div class="mb-8">
+              <svg class="w-32 h-32 mx-auto text-red-600 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+            </div>
+            
+            <h1 class="text-4xl font-bold mb-4" style="color: ${config.warning_color};">
+              ⚠️ PERINGATAN!
+            </h1>
+            
+            <p class="text-2xl font-bold mb-8" style="color: ${config.text_color};">
+              JANGAN PINDAH TAB!
+            </p>
+            
+            <div class="mb-8">
+              <div id="warningCountdown" class="countdown-number" style="color: ${config.warning_color};">
+                ${currentState.warningCountdown}
+              </div>
+              <p class="text-lg" style="color: ${config.text_color};">detik untuk kembali</p>
+            </div>
+            
+            <div class="mb-8 p-6 rounded-lg" style="background-color: ${config.background_color};">
+              <p class="font-bold mb-2" style="color: ${config.text_color};">
+                Pelanggaran ke-${currentState.violations} dari ${MAX_VIOLATIONS}
+              </p>
+              <p class="text-sm" style="color: ${config.text_color};">
+                ${currentState.violations >= MAX_VIOLATIONS - 1 ? 
+                  'PERINGATAN TERAKHIR! Pelanggaran lagi akan langsung submit ujian!' : 
+                  `Sisa ${MAX_VIOLATIONS - currentState.violations} pelanggaran lagi`}
+              </p>
+            </div>
+            
+            <button onclick="returnToExam()" 
+              class="text-white font-bold py-4 px-12 rounded-lg text-xl transition-all transform hover:scale-105 shadow-lg"
+              style="background-color: ${config.primary_color};">
+              KEMBALI KE UJIAN
+            </button>
+            
+            <p class="text-sm mt-6 text-gray-600">
+              Jika tidak klik tombol dalam ${WARNING_COUNTDOWN} detik, ujian akan otomatis disubmit
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderResultPage() {
+      const config = window.elementSdk?.config || defaultConfig;
+      const score = calculateScore();
+      const answered = Object.keys(currentState.answers).length;
+      const correct = Math.round((score / 100) * questions.length);
+      
+      if (currentState.isSaving) {
+        return `
+          <div class="min-h-full flex items-center justify-center p-6" style="background: linear-gradient(135deg, ${config.background_color} 0%, #dbeafe 100%);">
+            <div class="bg-white rounded-2xl shadow-2xl p-12 w-full max-w-md text-center">
+              <div class="mb-6">
+                <svg class="animate-spin h-16 w-16 mx-auto" style="color: ${config.primary_color};" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+              <h2 class="text-2xl font-bold mb-2" style="color: ${config.text_color};">Menyimpan Hasil...</h2>
+              <p class="text-sm" style="color: ${config.secondary_color};">Data ujian sedang disimpan ke Canva Sheet</p>
+            </div>
+          </div>
+        `;
+      }
+      
+      return `
+        <div class="min-h-full flex items-center justify-center p-6" style="background: linear-gradient(135deg, ${config.background_color} 0%, #dbeafe 100%);">
+          <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl">
+            <div class="text-center mb-8">
+              <div class="inline-block p-4 rounded-full mb-4" style="background-color: ${score >= 70 ? '#10b981' : config.warning_color};">
+                <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  ${score >= 70 ? 
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>' :
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>'
+                  }
+                </svg>
+              </div>
+              <h1 class="text-3xl font-bold mb-2" style="color: ${config.text_color};">Ujian Selesai!</h1>
+              <p class="text-lg" style="color: ${config.secondary_color};">${config.exam_title}</p>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+              <div class="p-4 rounded-lg" style="background-color: ${config.background_color};">
+                <div class="text-sm font-semibold mb-1" style="color: ${config.text_color};">Nama</div>
+                <div class="font-bold" style="color: ${config.primary_color};">${currentState.studentName}</div>
+              </div>
+              <div class="p-4 rounded-lg" style="background-color: ${config.background_color};">
+                <div class="text-sm font-semibold mb-1" style="color: ${config.text_color};">Kelas</div>
+                <div class="font-bold" style="color: ${config.primary_color};">${currentState.studentClass}</div>
+              </div>
+            </div>
+            
+            <div class="p-8 rounded-xl mb-6 text-center" style="background: linear-gradient(135deg, ${config.primary_color} 0%, ${config.secondary_color} 100%);">
+              <div class="text-white text-6xl font-bold mb-2">${score.toFixed(1)}</div>
+              <div class="text-white text-xl font-semibold">Nilai Anda</div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4 mb-6">
+              <div class="p-4 rounded-lg text-center" style="background-color: ${config.background_color};">
+                <div class="text-2xl font-bold mb-1" style="color: ${config.primary_color};">${answered}</div>
+                <div class="text-sm" style="color: ${config.text_color};">Dijawab</div>
+              </div>
+              <div class="p-4 rounded-lg text-center" style="background-color: ${config.background_color};">
+                <div class="text-2xl font-bold mb-1" style="color: #10b981;">${correct}</div>
+                <div class="text-sm" style="color: ${config.text_color};">Benar</div>
+              </div>
+              <div class="p-4 rounded-lg text-center" style="background-color: ${config.background_color};">
+                <div class="text-2xl font-bold mb-1" style="color: ${config.warning_color};">${answered - correct}</div>
+                <div class="text-sm" style="color: ${config.text_color};">Salah</div>
+              </div>
+            </div>
+            
+            ${currentState.violations > 0 ? `
+              <div class="p-4 rounded-lg mb-6" style="background-color: #fef3c7; border-left: 4px solid ${config.warning_color};">
+                <p class="text-sm" style="color: ${config.text_color};">
+                  ⚠    Total Pelanggaran: <strong>${currentState.violations}</strong> kali
+                </p>
+              </div>
+            ` : ''}
+            
+            <div class="p-4 rounded-lg mb-6" style="background-color: #d1fae5; border-left: 4px solid #10b981;">
+              <p class="text-sm font-semibold" style="color: ${config.text_color};">
+                ✓ Hasil ujian telah tersimpan di Canva Sheet
+              </p>
+            </div>
+            
+            <div class="space-y-3">
+              <button onclick="backToDashboard()" 
+                class="w-full font-bold py-4 rounded-lg transition-all text-white"
+                style="background-color: ${config.primary_color};">
+                ← KEMBALI KE DASHBOARD
+              </button>
+              
+              ${currentState.isAdminMode ? `
+                <button onclick="showAnswerKey()" 
+                  class="w-full font-bold py-4 rounded-lg border-2 transition-all"
+                  style="border-color: ${config.primary_color}; color: ${config.primary_color};">
+                     LIHAT KUNCI JAWABAN
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAnswerKeyPage() {
+      const config = window.elementSdk?.config || defaultConfig;
+      
+      return `
+        <div class="min-h-full p-6" style="background-color: ${config.background_color};">
+          <div class="max-w-5xl mx-auto">
+            <div class="bg-white rounded-2xl shadow-lg p-8 mb-6">
+              <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold" style="color: ${config.text_color};">🔑 Kunci Jawaban</h1>
+                <button onclick="backToResult()" 
+                  class="px-6 py-2 rounded-lg font-semibold"
+                  style="background-color: ${config.secondary_color}; color: white;">
+                  ← Kembali
+                </button>
+              </div>
+              
+              <div class="space-y-4">
+                ${questions.map((q, index) => {
+                  const userAnswer = currentState.answers[index];
+                  const isCorrect = userAnswer === q.answer;
+                  
+                  return `
+                    <div class="p-6 rounded-lg border-2 ${isCorrect ? 'border-green-500' : userAnswer ? 'border-red-500' : 'border-gray-300'}">
+                      <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-3">
+                          <span class="font-bold text-lg" style="color: ${config.primary_color};">Soal ${index + 1}</span>
+                          <span class="px-2 py-1 rounded text-xs font-semibold text-white" 
+                            style="background-color: ${q.difficulty === 'HOTS' ? '#dc2626' : config.secondary_color};">
+                            ${q.difficulty}
+                          </span>
+                          ${isCorrect ? 
+                            '<span class="px-2 py-1 rounded text-xs font-semibold bg-green-500 text-white">✓ BENAR</span>' : 
+                            userAnswer ? '<span class="px-2 py-1 rounded text-xs font-semibold bg-red-500 text-white">✗ SALAH</span>' :
+                            '<span class="px-2 py-1 rounded text-xs font-semibold bg-gray-400 text-white">- TIDAK DIJAWAB</span>'
+                          }
+                        </div>
+                      </div>
+                      
+                      <p class="mb-3" style="color: ${config.text_color};">${q.content}</p>
+                      
+                      ${q.image ? `
+                        <img src="${q.image}" alt="Gambar soal" class="mb-3 rounded-lg max-w-md shadow-md" loading="lazy" onerror="console.error('Image failed to load:', this.src); this.style.background='#e5e7eb'; this.alt='Gambar tidak tersedia';">
+                      ` : ''}
+                      
+                      <div class="grid grid-cols-1 gap-2 mb-3">
+                        ${q.options.map((option, idx) => {
+                          const letter = String.fromCharCode(65 + idx);
+                          const isAnswer = letter === q.answer;
+                          const isUserAnswer = letter === userAnswer;
+                          
+                          return `
+                            <div class="p-3 rounded ${isAnswer ? 'bg-green-100 border-2 border-green-500' : isUserAnswer ? 'bg-red-100 border-2 border-red-500' : 'bg-gray-50'}">
+                              <span class="font-bold mr-2">${letter}.</span>
+                              <span>${option}</span>
+                              ${isAnswer ? ' <span class="text-green-600 font-bold">✓ JAWABAN BENAR</span>' : ''}
+                              ${isUserAnswer && !isAnswer ? ' <span class="text-red-600 font-bold">✗ JAWABAN ANDA</span>' : ''}
+                            </div>
+                          `;
+                        }).join('')}
+                      </div>
+                      
+                      <div class="flex gap-4 text-sm">
+                        ${userAnswer ? 
+                          `<span style="color: ${config.text_color};">Jawaban Anda: <strong>${userAnswer}</strong></span>` : 
+                          '<span class="text-gray-500">Tidak dijawab</span>'
+                        }
+                        <span style="color: ${config.text_color};">Kunci: <strong class="text-green-600">${q.answer}</strong></span>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    window.goToQuestion = (index) => {
+      currentState.currentQuestion = index;
+      render();
+    };
+
+    window.selectAnswer = (letter) => {
+      currentState.answers[currentState.currentQuestion] = letter;
+      saveToStorage();
+      render();
+    };
+
+    window.toggleDoubtful = () => {
+      if (currentState.doubtful.has(currentState.currentQuestion)) {
+        currentState.doubtful.delete(currentState.currentQuestion);
+      } else {
+        currentState.doubtful.add(currentState.currentQuestion);
+      }
+      saveToStorage();
+      render();
+    };
+
+    window.previousQuestion = () => {
+      if (currentState.currentQuestion > 0) {
+        currentState.currentQuestion--;
+        render();
+      }
+    };
+
+    window.nextQuestion = () => {
+      if (currentState.currentQuestion < questions.length - 1) {
+        currentState.currentQuestion++;
+        render();
+      }
+    };
+
+    window.confirmSubmit = () => {
+      const answered = Object.keys(currentState.answers).length;
+      const unanswered = questions.length - answered;
+      
+      if (unanswered > 0) {
+        const confirmDiv = document.createElement('div');
+        confirmDiv.className = 'fixed inset-0 flex items-center justify-center z-50';
+        confirmDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        
+        const config = window.elementSdk?.config || defaultConfig;
+        
+        confirmDiv.innerHTML = `
+          <div class="bg-white rounded-xl p-8 max-w-md shadow-2xl">
+            <h3 class="text-xl font-bold mb-4" style="color: ${config.text_color};">Konfirmasi Submit</h3>
+            <p class="mb-4" style="color: ${config.text_color};">
+              Anda masih memiliki <strong>${unanswered} soal</strong> yang belum dijawab.
+            </p>
+            <p class="mb-6" style="color: ${config.text_color};">
+              Apakah Anda yakin ingin menyelesaikan ujian?
+            </p>
+            <div class="flex gap-3">
+              <button onclick="this.closest('.fixed').remove()" 
+                class="flex-1 px-4 py-3 rounded-lg border-2 border-gray-300 font-semibold">
+                Batal
+              </button>
+              <button onclick="this.closest('.fixed').remove(); submitExam()" 
+                class="flex-1 px-4 py-3 rounded-lg text-white font-bold"
+                style="background-color: #10b981;">
+                Ya, Submit
+              </button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(confirmDiv);
+      } else {
+        submitExam();
+      }
+    };
+
+    window.backToDashboard = () => {
+      currentState = {
+        page: 'start',
+        studentName: '',
+        studentClass: '',
+        currentQuestion: 0,
+        answers: {},
+        doubtful: new Set(),
+        timeLeft: DURATION_MINUTES * 60,
+        timerInterval: null,
+        violations: 0,
+        warningTimeout: null,
+        warningCountdown: WARNING_COUNTDOWN,
+        warningInterval: null,
+        isAdminMode: false
+      };
+      clearStorage();
+      render();
+    };
+
+    window.resetExam = () => {
+      currentState = {
+        page: 'start',
+        studentName: '',
+        studentClass: '',
+        currentQuestion: 0,
+        answers: {},
+        doubtful: new Set(),
+        timeLeft: DURATION_MINUTES * 60,
+        timerInterval: null,
+        violations: 0,
+        warningTimeout: null,
+        warningCountdown: WARNING_COUNTDOWN,
+        warningInterval: null,
+        isAdminMode: false
+      };
+      clearStorage();
+      render();
+    };
+
+    window.showAnswerKey = () => {
+      currentState.page = 'answerKey';
+      render();
+    };
+
+    window.backToResult = () => {
+      currentState.page = 'result';
+      render();
+    };
+
+    window.exitAdminMode = () => {
+      currentState.isAdminMode = false;
+      currentState.page = 'start';
+      currentState.adminTab = 'questions';
+      render();
+    };
+
+    window.switchAdminTab = (tab) => {
+      currentState.adminTab = tab;
+      render();
+    };
+
+    window.viewResultDetail = (backendId) => {
+      const result = examResults.find(r => r.__backendId === backendId);
+      if (!result) return;
+      
+      const config = window.elementSdk?.config || defaultConfig;
+      const formatDate = (isoString) => {
+        const date = new Date(isoString);
+        return date.toLocaleDateString('id-ID', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      };
+      
+      const timeTaken = result.time_taken;
+      const hours = Math.floor(timeTaken / 3600);
+      const minutes = Math.floor((timeTaken % 3600) / 60);
+      const seconds = timeTaken % 60;
+      const timeFormatted = `${hours > 0 ? hours + ' jam ' : ''}${minutes} menit ${seconds} detik`;
+      
+      let answers = {};
+      try {
+        answers = JSON.parse(result.answers || '{}');
+      } catch (e) {
+        console.error('Error parsing answers:', e);
+      }
+      
+      const detailModal = document.createElement('div');
+      detailModal.className = 'fixed inset-0 flex items-center justify-center z-50 p-6 overflow-y-auto';
+      detailModal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+      
+      detailModal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-4xl my-8">
+          <div class="flex justify-between items-start mb-6">
+            <div>
+              <h2 class="text-2xl font-bold mb-2" style="color: ${config.text_color};">📋 Detail Hasil Ujian</h2>
+              <p class="text-sm" style="color: ${config.secondary_color};">${result.student_name} - ${result.student_class}</p>
+            </div>
+            <button onclick="this.closest('.fixed').remove()" 
+              class="text-gray-400 hover:text-gray-600 text-2xl">
+              ✕
+            </button>
+          </div>
+          
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="p-4 rounded-lg" style="background-color: ${config.background_color};">
+              <div class="text-sm font-semibold mb-1" style="color: ${config.text_color};">Nilai</div>
+              <div class="text-2xl font-bold" style="color: ${result.score >= 70 ? '#10b981' : config.warning_color};">
+                ${result.score.toFixed(1)}
+              </div>
+            </div>
+            <div class="p-4 rounded-lg" style="background-color: ${config.background_color};">
+              <div class="text-sm font-semibold mb-1" style="color: ${config.text_color};">Benar</div>
+              <div class="text-2xl font-bold" style="color: #10b981;">
+                ${result.correct_answers}/${result.total_questions}
+              </div>
+            </div>
+            <div class="p-4 rounded-lg" style="background-color: ${config.background_color};">
+              <div class="text-sm font-semibold mb-1" style="color: ${config.text_color};">Waktu Selesai</div>
+              <div class="text-sm font-bold" style="color: ${config.text_color};">
+                ${timeFormatted}
+              </div>
+            </div>
+            <div class="p-4 rounded-lg" style="background-color: ${config.background_color};">
+              <div class="text-sm font-semibold mb-1" style="color: ${config.text_color};">Pelanggaran</div>
+              <div class="text-2xl font-bold" style="color: ${result.violations > 0 ? config.warning_color : '#10b981'};">
+                ${result.violations || '0'}
+              </div>
+            </div>
+          </div>
+          
+          <div class="mb-6 p-4 rounded-lg" style="background-color: ${config.background_color}; border-left: 4px solid ${config.primary_color};">
+            <div class="text-sm font-semibold mb-1" style="color: ${config.text_color};">Waktu Selesai</div>
+            <div style="color: ${config.text_color};">${formatDate(result.submitted_at)}</div>
+          </div>
+          
+          <div class="mb-6">
+            <h3 class="text-lg font-bold mb-4" style="color: ${config.text_color};">📝 Detail Jawaban Peserta</h3>
+            <div class="space-y-4 max-h-96 overflow-y-auto">
+              ${questions.map((q, index) => {
+                const userAnswer = answers[index];
+                const isCorrect = userAnswer === q.answer;
+                
+                return `
+                  <div class="p-4 rounded-lg border-2 ${isCorrect ? 'border-green-500' : userAnswer ? 'border-red-500' : 'border-gray-300'}">
+                    <div class="flex justify-between items-start mb-2">
+                      <span class="font-bold" style="color: ${config.primary_color};">Soal ${index + 1}</span>
+                      <span class="text-xs font-bold px-2 py-1 rounded text-white"
+                        style="background-color: ${isCorrect ? '#10b981' : userAnswer ? config.warning_color : '#9ca3af'};">
+                        ${isCorrect ? '✓ BENAR' : userAnswer ? '✗ SALAH' : '- TIDAK DIJAWAB'}
+                      </span>
+                    </div>
+                    <p class="text-sm mb-2" style="color: ${config.text_color};">${q.content}</p>
+                    <div class="grid grid-cols-1 gap-2">
+                      ${q.options.map((opt, idx) => {
+                        const letter = String.fromCharCode(65 + idx);
+                        const isAnswer = letter === q.answer;
+                        const isUserAnswer = letter === userAnswer;
+                        
+                        return `
+                          <div class="p-2 rounded text-sm ${isAnswer ? 'bg-green-100 border border-green-500' : isUserAnswer ? 'bg-red-100 border border-red-500' : 'bg-gray-50'}">
+                            <span class="font-semibold">${letter}.</span> ${opt}
+                            ${isAnswer ? ' <span class="text-green-600 font-bold">✓ JAWABAN BENAR</span>' : ''}
+                            ${isUserAnswer && !isAnswer ? ' <span class="text-red-600 font-bold">✗ JAWABAN PESERTA</span>' : ''}
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+          
+          <button onclick="this.closest('.fixed').remove()" 
+            class="w-full px-6 py-3 rounded-lg font-bold text-white"
+            style="background-color: ${config.primary_color};">
+            Tutup
+          </button>
+        </div>
+      `;
+      
+      document.body.appendChild(detailModal);
+    };
+
+    window.exportResultsToCSV = () => {
+      if (examResults.length === 0) {
+        alert('Tidak ada data untuk diexport');
+        return;
+      }
+      
+      // Create CSV header
+      const headers = ['No.', 'Nama Peserta', 'Kelas', 'Nilai', 'Benar', 'Total', 'Status', 'Pelanggaran', 'Waktu Selesai'];
+      const rows = [];
+      
+      // Add data rows
+      examResults.sort((a, b) => b.score - a.score).forEach((result, index) => {
+        const status = result.score >= 70 ? 'LULUS' : 'TIDAK LULUS';
+        const formatDate = (isoString) => {
+          const date = new Date(isoString);
+          return date.toLocaleDateString('id-ID', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          }).replace(/\//g, '-');
+        };
+        
+        rows.push([
+          index + 1,
+          `"${result.student_name}"`,
+          `"${result.student_class}"`,
+          result.score.toFixed(1),
+          result.correct_answers,
+          result.total_questions,
+          status,
+          result.violations || 0,
+          `"${formatDate(result.submitted_at)}"`
+        ]);
+      });
+      
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+      ].join('\n');
+      
+      // Download CSV
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      const config = window.elementSdk?.config || defaultConfig;
+      const filename = `Rekap_Nilai_${config.exam_title.replace(/\s+/g, '_')}_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}.csv`;
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    window.updateQuestion = (index, value) => {
+      questions[index].content = value;
+    };
+
+    window.updateOption = (qIndex, optIndex, value) => {
+      questions[qIndex].options[optIndex] = value;
+    };
+
+    window.updateAnswer = (index, letter) => {
+      questions[index].answer = letter;
+    };
+
+    window.updateDifficulty = (index, value) => {
+      questions[index].difficulty = value;
+    };
+
+    window.updateQuestionImage = (index, value) => {
+      questions[index].image = value.trim() || null;
+      render();
+    };
+
+    window.removeQuestionImage = (index) => {
+      questions[index].image = null;
+      render();
+    };
+
+    window.addNewQuestion = () => {
+      const config = window.elementSdk?.config || defaultConfig;
+      
+      const modalDiv = document.createElement('div');
+      modalDiv.className = 'fixed inset-0 flex items-center justify-center z-50 p-6';
+      modalDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+      
+      modalDiv.innerHTML = `
+        <div class="bg-white rounded-xl p-8 max-w-3xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+          <h3 class="text-2xl font-bold mb-6" style="color: ${config.text_color};">➕ Tambah Soal Baru</h3>
+          
+          <form id="newQuestionForm" class="space-y-6">
+            <div>
+              <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Tingkat Kesulitan:</label>
+              <select id="newDifficulty" class="w-full px-4 py-2 border-2 rounded-lg" style="border-color: ${config.secondary_color};">
+                <option value="REGULER">REGULER</option>
+                <option value="HOTS">HOTS</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Pertanyaan:</label>
+              <textarea id="newContent" required rows="4" 
+                class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none"
+                style="border-color: ${config.secondary_color};"
+                placeholder="Tulis pertanyaan di sini..."></textarea>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">URL Gambar (opsional):</label>
+              <input type="text" id="newImage" 
+                class="w-full px-4 py-2 border-2 rounded-lg focus:outline-none"
+                style="border-color: ${config.secondary_color};"
+                placeholder="https://...">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-semibold mb-3" style="color: ${config.text_color};">Pilihan Jawaban:</label>
+              <div class="space-y-3">
+                ${['A', 'B', 'C', 'D', 'E'].map(letter => `
+                  <div class="flex items-center gap-3">
+                    <input type="radio" name="newAnswer" value="${letter}" ${letter === 'A' ? 'checked' : ''} class="w-5 h-5" required>
+                    <span class="font-bold w-8">${letter}.</span>
+                    <input type="text" id="newOption${letter}" required
+                      class="flex-1 px-3 py-2 border-2 rounded focus:outline-none"
+                      style="border-color: ${config.secondary_color};"
+                      placeholder="Tulis pilihan ${letter}">
+                  </div>
+                `).join('')}
+              </div>
+              <p class="text-xs text-gray-500 mt-2">* Pilih radio button untuk menandai jawaban yang benar</p>
+            </div>
+            
+            <div class="flex gap-3">
+              <button type="button" onclick="this.closest('.fixed').remove()" 
+                class="flex-1 px-4 py-3 rounded-lg border-2 border-gray-300 font-semibold">
+                Batal
+              </button>
+              <button type="submit" 
+                class="flex-1 px-4 py-3 rounded-lg text-white font-bold"
+                style="background-color: #10b981;">
+                Tambah Soal
+              </button>
+            </div>
+          </form>
+        </div>
+      `;
+      
+      document.body.appendChild(modalDiv);
+      
+      const form = modalDiv.querySelector('#newQuestionForm');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const difficulty = document.getElementById('newDifficulty').value;
+        const content = document.getElementById('newContent').value.trim();
+        const image = document.getElementById('newImage').value.trim() || null;
+        const answer = document.querySelector('input[name="newAnswer"]:checked').value;
+        
+        const options = ['A', 'B', 'C', 'D', 'E'].map(letter => 
+          document.getElementById(`newOption${letter}`).value.trim()
+        );
+        
+        questions.push({
+          content,
+          image,
+          options,
+          answer,
+          difficulty
+        });
+        
+        modalDiv.remove();
+        render();
+      });
+    };
+
+    window.deleteQuestion = (index) => {
+      const config = window.elementSdk?.config || defaultConfig;
+      
+      const confirmDiv = document.createElement('div');
+      confirmDiv.className = 'fixed inset-0 flex items-center justify-center z-50';
+      confirmDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+      
+      confirmDiv.innerHTML = `
+        <div class="bg-white rounded-xl p-8 max-w-md shadow-2xl">
+          <h3 class="text-xl font-bold mb-4" style="color: ${config.text_color};">Hapus Soal?</h3>
+          <p class="mb-6" style="color: ${config.text_color};">
+            Apakah Anda yakin ingin menghapus <strong>Soal ${index + 1}</strong>?<br>
+            Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <div class="flex gap-3">
+            <button onclick="this.closest('.fixed').remove()" 
+              class="flex-1 px-4 py-3 rounded-lg border-2 border-gray-300 font-semibold">
+              Batal
+            </button>
+            <button onclick="confirmDeleteQuestion(${index}); this.closest('.fixed').remove()" 
+              class="flex-1 px-4 py-3 rounded-lg text-white font-bold"
+              style="background-color: ${config.warning_color};">
+              Ya, Hapus
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(confirmDiv);
+    };
+
+    window.confirmDeleteQuestion = (index) => {
+      questions.splice(index, 1);
+      render();
+    };
+
+    window.moveQuestion = (index, direction) => {
+      const newIndex = index + direction;
+      if (newIndex >= 0 && newIndex < questions.length) {
+        const temp = questions[index];
+        questions[index] = questions[newIndex];
+        questions[newIndex] = temp;
+        render();
+      }
+    };
+
+    window.showAdminLogin = () => {
+      const config = window.elementSdk?.config || defaultConfig;
+      
+      const loginDiv = document.createElement('div');
+      loginDiv.className = 'fixed inset-0 flex items-center justify-center z-50';
+      loginDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+      
+      loginDiv.innerHTML = `
+        <div class="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl">
+          <h3 class="text-2xl font-bold mb-4 text-center" style="color: ${config.text_color};">🔐 Login Guru</h3>
+          <p class="mb-6 text-center text-sm" style="color: ${config.text_color};">Masukkan password untuk akses guru</p>
+          <form id="adminLoginForm" class="space-y-4">
+            <input type="password" id="adminPassword" 
+              class="w-full px-4 py-3 border-2 rounded-lg focus:outline-none"
+              style="border-color: ${config.secondary_color};"
+              placeholder="Password guru">
+            <div class="flex gap-3">
+              <button type="button" onclick="this.closest('.fixed').remove()" 
+                class="flex-1 px-4 py-3 rounded-lg border-2 border-gray-300 font-semibold">
+                Batal
+              </button>
+              <button type="submit" 
+                class="flex-1 px-4 py-3 rounded-lg text-white font-bold"
+                style="background-color: ${config.primary_color};">
+                Login
+              </button>
+            </div>
+          </form>
+        </div>
+      `;
+      
+      document.body.appendChild(loginDiv);
+      
+      const form = loginDiv.querySelector('#adminLoginForm');
+      const passwordInput = loginDiv.querySelector('#adminPassword');
+      
+      passwordInput.focus();
+      
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const password = passwordInput.value;
+        
+        if (password === ADMIN_PASSWORD) {
+          currentState.isAdminMode = true;
+          currentState.page = 'admin';
+          loginDiv.remove();
+          render();
+        } else {
+          passwordInput.value = '';
+          passwordInput.style.borderColor = '#ef4444';
+          passwordInput.placeholder = '✗ Password salah! Coba lagi...';
+          passwordInput.focus();
+        }
+      });
+    };
+
+    function render() {
+      const app = document.getElementById('app');
+      if (!app) return;
+      
+      let html = '';
+      
+      switch (currentState.page) {
+        case 'start':
+          html = renderStartPage();
+          break;
+        case 'admin':
+          html = renderAdminPanel();
+          break;
+        case 'exam':
+          html = renderExamPage();
+          break;
+        case 'warning':
+          html = renderWarningPage();
+          break;
+        case 'result':
+          html = renderResultPage();
+          break;
+        case 'answerKey':
+          html = renderAnswerKeyPage();
+          break;
+      }
+      
+      app.innerHTML = html;
+      
+      if (currentState.page === 'start') {
+        const form = document.getElementById('startForm');
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('studentName');
+            const classInput = document.getElementById('studentClass');
+            
+            const name = nameInput.value.trim();
+            const className = classInput.value.trim();
+            
+            if (hasCompletedExam(name, className)) {
+              const config = window.elementSdk?.config || defaultConfig;
+              
+              const warningDiv = document.createElement('div');
+              warningDiv.className = 'fixed inset-0 flex items-center justify-center z-50';
+              warningDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+              
+              warningDiv.innerHTML = `
+                <div class="bg-white rounded-xl p-8 max-w-md shadow-2xl">
+                  <div class="text-center mb-6">
+                    <svg class="w-20 h-20 mx-auto text-red-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                  </div>
+                  <h3 class="text-2xl font-bold mb-4 text-center" style="color: ${config.warning_color};">⚠️ Akses Ditolak</h3>
+                  <p class="mb-4 text-center" style="color: ${config.text_color};">
+                    <strong>${name}</strong> dari kelas <strong>${className}</strong> sudah pernah mengikuti ujian ini.
+                  </p>
+                  <p class="mb-6 text-center text-sm" style="color: ${config.text_color};">
+                    Setiap peserta hanya diperbolehkan mengikuti ujian <strong>1 kali</strong>.
+                  </p>
+                  <button onclick="this.closest('.fixed').remove()" 
+                    class="w-full px-4 py-3 rounded-lg text-white font-bold"
+                    style="background-color: ${config.primary_color};">
+                    Mengerti
+                  </button>
+                </div>
+              `;
+              
+              document.body.appendChild(warningDiv);
+              return;
+            }
+            
+            const savedExam = localStorage.getItem('examState');
+            if (savedExam) {
+              try {
+                const data = JSON.parse(savedExam);
+                if (data.studentName && data.studentClass && 
+                    (data.studentName !== name || data.studentClass !== className)) {
+                  const config = window.elementSdk?.config || defaultConfig;
+                  
+                  const warningDiv = document.createElement('div');
+                  warningDiv.className = 'fixed inset-0 flex items-center justify-center z-50';
+                  warningDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                  
+                  warningDiv.innerHTML = `
+                    <div class="bg-white rounded-xl p-8 max-w-md shadow-2xl">
+                      <div class="text-center mb-6">
+                        <svg class="w-20 h-20 mx-auto text-yellow-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                      </div>
+                      <h3 class="text-2xl font-bold mb-4 text-center" style="color: ${config.warning_color};">⚠️ Ujian Aktif Terdeteksi</h3>
+                      <p class="mb-4 text-center" style="color: ${config.text_color};">
+                        Masih ada ujian aktif atas nama:<br>
+                        <strong>${data.studentName}</strong> - <strong>${data.studentClass}</strong>
+                      </p>
+                      <p class="mb-6 text-center text-sm" style="color: ${config.text_color};">
+                        Anda harus menyelesaikan ujian tersebut terlebih dahulu sebelum memulai ujian dengan nama/kelas berbeda.
+                      </p>
+                      <button onclick="this.closest('.fixed').remove()" 
+                        class="w-full px-4 py-3 rounded-lg text-white font-bold"
+                        style="background-color: ${config.primary_color};">
+                        Mengerti
+                      </button>
+                    </div>
+                  `;
+                  
+                  document.body.appendChild(warningDiv);
+                  return;
+                }
+              } catch (e) {
+                console.error('Error checking saved exam:', e);
+              }
+            }
+            
+            currentState.studentName = name;
+            currentState.studentClass = className;
+            currentState.page = 'exam';
+            
+            saveToStorage();
+            startTimer();
+            render();
+          });
+        }
+      }
+    }
+
+    async function onConfigChange(config) {
+      render();
+    }
+
+    const capabilities = {
+      recolorables: [
+        {
+          get: () => (window.elementSdk?.config || defaultConfig).background_color,
+          set: (value) => {
+            if (window.elementSdk) {
+              window.elementSdk.setConfig({ background_color: value });
+            }
+          }
+        },
+        {
+          get: () => (window.elementSdk?.config || defaultConfig).primary_color,
+          set: (value) => {
+            if (window.elementSdk) {
+              window.elementSdk.setConfig({ primary_color: value });
+            }
+          }
+        },
+        {
+          get: () => (window.elementSdk?.config || defaultConfig).secondary_color,
+          set: (value) => {
+            if (window.elementSdk) {
+              window.elementSdk.setConfig({ secondary_color: value });
+            }
+          }
+        },
+        {
+          get: () => (window.elementSdk?.config || defaultConfig).text_color,
+          set: (value) => {
+            if (window.elementSdk) {
+              window.elementSdk.setConfig({ text_color: value });
+            }
+          }
+        },
+        {
+          get: () => (window.elementSdk?.config || defaultConfig).warning_color,
+          set: (value) => {
+            if (window.elementSdk) {
+              window.elementSdk.setConfig({ warning_color: value });
+            }
+          }
+        }
+      ],
+      borderables: [],
+      fontEditable: undefined,
+      fontSizeable: undefined
+    };
+
+    function mapToCapabilities(config) {
+      return capabilities;
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ["exam_title", config.exam_title || defaultConfig.exam_title],
+        ["subject", config.subject || defaultConfig.subject],
+        ["academic_year", config.academic_year || defaultConfig.academic_year],
+        ["duration_text", config.duration_text || defaultConfig.duration_text],
+        ["total_questions_text", config.total_questions_text || defaultConfig.total_questions_text]
+      ]);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    }
+
+    if (window.dataSdk) {
+      window.dataSdk.init(dataHandler).then(result => {
+        if (result.isError) {
+          console.error('Failed to initialize data SDK:', result.error);
+        }
+      });
+    }
+
+    loadFromStorage();
+    setupAntiCheat();
+    render();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e35e70d0385fd04',t:'MTc3NDY5MzIyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
