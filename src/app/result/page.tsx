@@ -9,9 +9,7 @@ import type { ExamResult, Question } from "@/types";
 export default function ResultPage() {
   const router = useRouter();
   const [result, setResult] = useState<ExamResult | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [showAnswerKey, setShowAnswerKey] = useState(false);
-  const [loadingQuestions, setLoadingQuestions] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const raw = sessionStorage.getItem("examResult");
@@ -20,34 +18,10 @@ export default function ResultPage() {
       return;
     }
     setResult(JSON.parse(raw));
+    setLoading(false);
   }, []);
 
-  useEffect(() => {
-    async function fetchQuestions() {
-      try {
-        const res = await fetch("/api/questions");
-        const json = await res.json();
-        if (json.data) {
-          setQuestions(json.data);
-        }
-      } catch (e) {
-        console.error("Failed to fetch questions:", e);
-      } finally {
-        setLoadingQuestions(false);
-      }
-    }
-    fetchQuestions();
-  }, []);
-
-  if (!result) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (loadingQuestions) {
+  if (!result || loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -58,99 +32,6 @@ export default function ResultPage() {
   const isPass = (result.score ?? 0) >= PASSING_GRADE;
   const wrong = (result.answered ?? 0) - (result.correct_answers ?? 0);
   const config = DEFAULT_CONFIG;
-
-  if (showAnswerKey) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-slate-800">🔑 Kunci Jawaban</h1>
-              <button
-                onClick={() => setShowAnswerKey(false)}
-                className="px-5 py-2 rounded-xl bg-blue-700 text-white font-semibold hover:bg-blue-800 transition-colors"
-              >
-                ← Kembali
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {questions.map((q, idx) => {
-                const userAnswer = result.answers[idx];
-                const isCorrect = userAnswer === q.answer;
-                return (
-                  <div
-                    key={q.id || idx}
-                    className={`p-5 rounded-xl border-2 animate-fadeIn ${
-                      isCorrect
-                        ? "border-emerald-400"
-                        : userAnswer
-                        ? "border-red-400"
-                        : "border-slate-200"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="font-bold text-blue-700">Soal {idx + 1}</span>
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs font-bold text-white ${
-                          q.difficulty === "HOTS" ? "bg-red-500" : "bg-blue-500"
-                        }`}
-                      >
-                        {q.difficulty}
-                      </span>
-                      {isCorrect ? (
-                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500 text-white">✓ BENAR</span>
-                      ) : userAnswer ? (
-                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-500 text-white">✗ SALAH</span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-400 text-white">- TIDAK DIJAWAB</span>
-                      )}
-                    </div>
-
-                    <p className="text-slate-700 mb-3 text-sm">{q.content}</p>
-
-                    <div className="space-y-1.5">
-                      {q.options.map((opt, optIdx) => {
-                        const letter = String.fromCharCode(65 + optIdx);
-                        const isAnswer = letter === q.answer;
-                        const isUser = letter === userAnswer;
-                        return (
-                          <div
-                            key={letter}
-                            className={`p-2.5 rounded-lg text-sm ${
-                              isAnswer
-                                ? "bg-emerald-100 border border-emerald-400"
-                                : isUser
-                                ? "bg-red-100 border border-red-400"
-                                : "bg-slate-50"
-                            }`}
-                          >
-                            <span className="font-semibold mr-1.5">{letter}.</span>
-                            {opt}
-                            {isAnswer && (
-                              <span className="ml-2 text-emerald-600 font-bold">✓ JAWABAN BENAR</span>
-                            )}
-                            {isUser && !isAnswer && (
-                              <span className="ml-2 text-red-600 font-bold">✗ JAWABAN ANDA</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex gap-4 mt-3 text-xs text-slate-500">
-                      <span>Jawaban Anda: <strong>{userAnswer || "Tidak dijawab"}</strong></span>
-                      <span>Kunci: <strong className="text-emerald-600">{q.answer}</strong></span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100 flex items-center justify-center p-6">
@@ -251,12 +132,6 @@ export default function ResultPage() {
             className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl transition-all"
           >
             ← KEMBALI KE DASHBOARD
-          </button>
-          <button
-            onClick={() => setShowAnswerKey(true)}
-            className="w-full border-2 border-blue-700 text-blue-700 font-bold py-3.5 rounded-xl hover:bg-blue-50 transition-all"
-          >
-            📋 LIHAT KUNCI JAWABAN
           </button>
         </div>
       </div>
