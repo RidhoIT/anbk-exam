@@ -63,3 +63,44 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ data }, { status: 201 });
 }
+
+// DELETE result(s)
+export async function DELETE(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+  const ids = searchParams.get("ids");
+
+  // Bulk delete
+  if (ids) {
+    const idArray = ids.split(",");
+    const { error } = await supabase
+      .from("exam_results")
+      .delete()
+      .in("id", idArray);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, deleted: idArray.length });
+  }
+
+  // Single delete
+  if (!id) {
+    return NextResponse.json(
+      { error: "Result ID is required" },
+      { status: 400 }
+    );
+  }
+
+  const { error } = await supabase
+    .from("exam_results")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

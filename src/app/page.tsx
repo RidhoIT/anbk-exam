@@ -114,36 +114,36 @@ export default function StartPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100">
+    <div className="min-h-screen flex items-center justify-center p-3 sm:p-4 bg-gradient-to-br from-blue-50 via-sky-50 to-indigo-100">
       {/* Background decoration */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-200 rounded-full opacity-20 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-200 rounded-full opacity-20 blur-3xl" />
       </div>
 
-      <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xl animate-fadeIn">
+      <div className="relative bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 w-full max-w-xl animate-fadeIn">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-blue-700 mb-5 shadow-lg">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-blue-700 mb-3 sm:mb-5 shadow-lg">
+            <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-800 leading-tight mb-1">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800 leading-tight mb-1">
             {config.exam_title}
           </h1>
-          <p className="text-blue-600 font-semibold text-sm mb-0.5">{config.subject}</p>
-          <p className="text-slate-500 text-sm">{config.academic_year}</p>
+          <p className="text-blue-600 font-semibold text-xs sm:text-sm mb-0.5">{config.subject}</p>
+          <p className="text-slate-500 text-xs sm:text-sm">{config.academic_year}</p>
 
-          <div className="flex justify-center gap-6 mt-4 text-sm text-slate-600">
+          <div className="flex justify-center gap-4 sm:gap-6 mt-3 sm:mt-4 text-xs sm:text-sm text-slate-600">
             <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>{config.duration_minutes} menit</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
               <span>50 soal</span>
@@ -152,9 +152,9 @@ export default function StartPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleStart} className="space-y-4">
+        <form onSubmit={handleStart} className="space-y-3 sm:space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
               NISN
             </label>
             <input
@@ -164,12 +164,12 @@ export default function StartPage() {
               required
               maxLength={12}
               placeholder="Masukkan NISN"
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors text-slate-800 placeholder:text-slate-400 font-mono"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors text-sm sm:text-base text-slate-800 placeholder:text-slate-400 font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
               Nama Lengkap
             </label>
             <input
@@ -178,12 +178,12 @@ export default function StartPage() {
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="Masukkan nama lengkap Anda"
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors text-slate-800 placeholder:text-slate-400"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors text-sm sm:text-base text-slate-800 placeholder:text-slate-400"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-700 mb-1.5">
               Kelas
             </label>
             <input
@@ -192,18 +192,18 @@ export default function StartPage() {
               onChange={(e) => setCls(e.target.value)}
               required
               placeholder="Contoh: XII IPA 1"
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors text-slate-800 placeholder:text-slate-400"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-0 transition-colors text-sm sm:text-base text-slate-800 placeholder:text-slate-400"
             />
           </div>
 
           {/* Warning box */}
-          <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-xl p-4">
-            <div className="flex gap-3">
-              <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-xl p-3 sm:p-4">
+            <div className="flex gap-2 sm:gap-3">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <div>
-                <p className="text-sm font-bold text-amber-800 mb-1">⚠️ PERHATIAN ANTI-CHEATING</p>
+                <p className="text-xs sm:text-sm font-bold text-amber-800 mb-1">⚠️ PERHATIAN ANTI-CHEATING</p>
                 <ul className="text-xs text-amber-700 space-y-0.5">
                   <li>• DILARANG pindah tab atau minimize browser</li>
                   <li>• Pelanggaran maksimal: <strong>3 kali</strong></li>
@@ -215,13 +215,13 @@ export default function StartPage() {
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 text-center">{error}</p>
+            <p className="text-xs sm:text-sm text-red-600 text-center">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 sm:py-3.5 rounded-xl transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-md disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
@@ -237,7 +237,7 @@ export default function StartPage() {
             <button
               type="button"
               onClick={handleContinue}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl transition-all transform hover:scale-[1.01] shadow-md"
+              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 sm:py-3.5 rounded-xl transition-all transform hover:scale-[1.01] shadow-md text-sm sm:text-base"
             >
               ▶️ LANJUTKAN UJIAN
             </button>
@@ -246,7 +246,7 @@ export default function StartPage() {
           <button
             type="button"
             onClick={() => setShowAdminModal(true)}
-            className="w-full text-slate-500 font-semibold py-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all"
+            className="w-full text-slate-500 font-semibold py-2.5 sm:py-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all text-sm sm:text-base"
           >
             🔐 Akses Guru
           </button>
@@ -255,20 +255,20 @@ export default function StartPage() {
 
       {/* Alert Modal */}
       {showAlert && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-fadeIn">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl animate-fadeIn">
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-red-100 mb-4">
+                <svg className="w-7 h-7 sm:w-8 sm:h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-red-600 mb-3">⚠️ Akses Ditolak</h3>
-              <p className="text-slate-600 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: alertMsg }} />
+              <h3 className="text-lg sm:text-xl font-bold text-red-600 mb-3">⚠️ Akses Ditolak</h3>
+              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: alertMsg }} />
             </div>
             <button
               onClick={() => setShowAlert(false)}
-              className="w-full bg-blue-700 text-white font-bold py-3 rounded-xl hover:bg-blue-800 transition-colors"
+              className="w-full bg-blue-700 text-white font-bold py-2.5 sm:py-3 rounded-xl hover:bg-blue-800 transition-colors text-sm sm:text-base"
             >
               Mengerti
             </button>
@@ -278,33 +278,33 @@ export default function StartPage() {
 
       {/* Admin Login Modal */}
       {showAdminModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
-          <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl animate-fadeIn">
-            <h3 className="text-xl font-bold text-slate-800 text-center mb-2">🔐 Login Guru</h3>
-            <p className="text-sm text-slate-500 text-center mb-6">Masukkan password untuk akses panel guru</p>
-            <form onSubmit={handleAdminLogin} className="space-y-4">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-sm w-full shadow-2xl animate-fadeIn">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-800 text-center mb-2">🔐 Login Guru</h3>
+            <p className="text-xs sm:text-sm text-slate-500 text-center mb-6">Masukkan password untuk akses panel guru</p>
+            <form onSubmit={handleAdminLogin} className="space-y-3 sm:space-y-4">
               <input
                 type="password"
                 value={adminPassword}
                 onChange={(e) => { setAdminPassword(e.target.value); setAdminError(""); }}
                 placeholder="Password guru"
                 autoFocus
-                className={`w-full px-4 py-3 border-2 rounded-xl transition-colors ${adminError ? "border-red-400" : "border-slate-200 focus:border-blue-500"}`}
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 rounded-xl transition-colors text-sm sm:text-base ${adminError ? "border-red-400" : "border-slate-200 focus:border-blue-500"}`}
               />
               {adminError && (
-                <p className="text-sm text-red-600">{adminError}</p>
+                <p className="text-xs sm:text-sm text-red-600">{adminError}</p>
               )}
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => { setShowAdminModal(false); setAdminPassword(""); setAdminError(""); }}
-                  className="flex-1 py-3 rounded-xl border-2 border-slate-200 font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="flex-1 py-2.5 sm:py-3 rounded-xl border-2 border-slate-200 font-semibold text-slate-600 hover:bg-slate-50 transition-colors text-sm sm:text-base"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 rounded-xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition-colors"
+                  className="flex-1 py-2.5 sm:py-3 rounded-xl bg-blue-700 text-white font-bold hover:bg-blue-800 transition-colors text-sm sm:text-base"
                 >
                   Login
                 </button>

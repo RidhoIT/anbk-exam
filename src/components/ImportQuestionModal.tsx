@@ -314,14 +314,14 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4"
       style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
     >
-      <div className="bg-white rounded-2xl p-8 max-w-5xl w-full shadow-2xl max-h-[90vh] overflow-y-auto animate-fadeIn">
-        <div className="flex justify-between items-start mb-6">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 max-w-5xl w-full shadow-2xl max-h-[90vh] overflow-y-auto animate-fadeIn mx-2 sm:mx-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-0 mb-4 sm:mb-6">
           <div>
-            <h3 className="text-2xl font-bold text-slate-800">📄 Import Soal dari Dokumen</h3>
-            <p className="text-slate-500 text-sm mt-1">
+            <h3 className="text-xl sm:text-2xl font-bold text-slate-800">📄 Import Soal dari Dokumen</h3>
+            <p className="text-slate-500 text-xs sm:text-sm mt-1">
               Upload file Word (.doc/.docx) atau file teks (.txt). Sistem akan menganalisis dan mengekstrak soal secara otomatis.
             </p>
             <p className="text-blue-600 text-xs mt-2 font-semibold">
@@ -330,21 +330,21 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+            className="text-slate-400 hover:text-slate-600 text-2xl leading-none flex-shrink-0"
           >
             ✕
           </button>
         </div>
 
         {/* Difficulty Selection */}
-        <div className="mb-6">
-          <label className="text-sm font-semibold text-slate-600 mb-2 block">
+        <div className="mb-4 sm:mb-6">
+          <label className="text-xs sm:text-sm font-semibold text-slate-600 mb-2 block">
             Tingkat Kesulitan
           </label>
           <select
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value as "REGULER" | "HOTS")}
-            className="px-4 py-2.5 border-2 border-slate-200 rounded-xl focus:border-blue-500 w-full md:w-auto"
+            className="px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-slate-200 rounded-xl focus:border-blue-500 w-full text-sm sm:text-base"
           >
             <option value="REGULER">REGULER</option>
             <option value="HOTS">HOTS</option>
@@ -353,7 +353,7 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
 
         {/* File Upload Section */}
         <div
-          className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${file ? "border-blue-400 bg-blue-50" : "border-slate-300 hover:border-blue-400 hover:bg-slate-50"
+          className={`border-2 border-dashed rounded-xl p-4 sm:p-6 md:p-8 text-center transition-colors ${file ? "border-blue-400 bg-blue-50" : "border-slate-300 hover:border-blue-400 hover:bg-slate-50"
             }`}
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleFileDrop}
@@ -369,9 +369,9 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
 
           {!file ? (
             <>
-              <div className="mb-4">
+              <div className="mb-3 sm:mb-4">
                 <svg
-                  className="w-16 h-16 mx-auto text-slate-400"
+                  className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-slate-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -384,24 +384,24 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
                   />
                 </svg>
               </div>
-              <p className="text-slate-600 font-semibold mb-2">Drag & drop file di sini</p>
-              <p className="text-slate-500 text-sm mb-4">atau klik untuk memilih file</p>
+              <p className="text-sm sm:text-base text-slate-600 font-semibold mb-2">Drag & drop file di sini</p>
+              <p className="text-slate-500 text-xs sm:text-sm mb-3 sm:mb-4">atau klik untuk memilih file</p>
               <p className="text-slate-400 text-xs">Format: PDF, DOC, DOCX, TXT, PNG, JPG (Max 10MB)</p>
               <p className="text-emerald-600 text-xs font-semibold mt-2">
                 💡 Tips: Untuk hasil OCR terbaik, gunakan gambar jelas dengan teks terbaca
               </p>
               <label
                 htmlFor="file-upload"
-                className="inline-block mt-4 px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl cursor-pointer transition-colors"
+                className="inline-block mt-3 sm:mt-4 px-5 sm:px-6 py-2 sm:py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl cursor-pointer transition-colors text-sm sm:text-base"
               >
                 Pilih File
               </label>
             </>
           ) : (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <svg
-                  className="w-10 h-10 text-blue-500"
+                  className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -413,9 +413,9 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                <div className="text-left">
-                  <p className="font-semibold text-slate-700">{file.name}</p>
-                  <p className="text-sm text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                <div className="text-left min-w-0">
+                  <p className="font-semibold text-slate-700 text-xs sm:text-sm truncate">{file.name}</p>
+                  <p className="text-xs sm:text-sm text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                 </div>
               </div>
               <button
@@ -427,7 +427,7 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
                   setShowTextEdit(false);
                   if (fileInputRef.current) fileInputRef.current.value = "";
                 }}
-                className="text-red-500 hover:text-red-700 font-semibold"
+                className="text-red-500 hover:text-red-700 font-semibold text-sm sm:text-base flex-shrink-0"
               >
                 Hapus
               </button>
@@ -437,11 +437,11 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
 
         {/* Loading State */}
         {loading && (
-          <div className="flex justify-center py-8">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <div className="flex justify-center py-6 sm:py-8">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
               <div>
-                <p className="text-slate-600 font-semibold">
+                <p className="text-slate-600 font-semibold text-sm sm:text-base">
                   {parsedQuestions.length > 0
                     ? "Menyimpan soal..."
                     : ocrProgress > 0
@@ -449,7 +449,7 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
                       : "Menganalisis soal dengan AI..."}
                 </p>
                 {ocrProgress > 0 && (
-                  <div className="w-48 h-2 bg-slate-200 rounded-full mt-2 overflow-hidden">
+                  <div className="w-32 sm:w-48 h-2 bg-slate-200 rounded-full mt-2 overflow-hidden">
                     <div
                       className="h-full bg-blue-600 transition-all duration-300"
                       style={{ width: `${ocrProgress}%` }}
@@ -463,10 +463,10 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
 
         {/* Error Message */}
         {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-            <div className="flex items-start gap-3">
+          <div className="mt-4 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl">
+            <div className="flex items-start gap-2 sm:gap-3">
               <svg
-                className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"
+                className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 flex-shrink-0 mt-0.5"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -477,8 +477,8 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
                 />
               </svg>
               <div>
-                <p className="font-semibold text-red-700 mb-1">Error</p>
-                <p className="text-sm text-red-600">{error}</p>
+                <p className="font-semibold text-red-700 text-sm mb-1">Error</p>
+                <p className="text-xs sm:text-sm text-red-600">{error}</p>
               </div>
             </div>
           </div>
@@ -486,21 +486,21 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
 
         {/* Text Edit Section */}
         {showTextEdit && (
-          <div className="mt-6">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="font-bold text-slate-700">📝 Paste / Edit Teks Soal</h4>
+          <div className="mt-4 sm:mt-6">
+            <div className="flex justify-between items-center mb-2 sm:mb-3">
+              <h4 className="font-bold text-slate-700 text-sm sm:text-base">📝 Paste / Edit Teks Soal</h4>
               <button
                 onClick={() => setShowTextEdit(false)}
-                className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-semibold"
               >
                 Sembunyikan
               </button>
             </div>
 
             {!textContent && (
-              <div className="mb-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                <p className="text-sm text-amber-800 font-semibold mb-2">📋 Cara menggunakan:</p>
-                <ol className="text-sm text-amber-700 space-y-1 list-decimal list-inside">
+              <div className="mb-2 sm:mb-3 p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-xs sm:text-sm text-amber-800 font-semibold mb-2">📋 Cara menggunakan:</p>
+                <ol className="text-xs sm:text-sm text-amber-700 space-y-1 list-decimal list-inside">
                   <li>Buka file soal Anda (PDF/Word/Docs)</li>
                   <li>Select all (Ctrl+A) dan copy (Ctrl+C)</li>
                   <li>Paste (Ctrl+V) di kotak di bawah ini</li>
@@ -512,7 +512,7 @@ export default function ImportQuestionModal({ onClose, onImport }: ImportQuestio
             <textarea
               value={textContent}
               onChange={(e) => setTextContent(e.target.value)}
-              className="w-full h-64 px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 text-sm font-mono"
+              className="w-full h-48 sm:h-64 px-3 sm:px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 text-xs sm:text-sm font-mono"
               placeholder="Paste teks soal di sini...
 
 Contoh format:
@@ -529,7 +529,7 @@ E. 175 m2"
             <button
               onClick={handleAnalyzeWithAI}
               disabled={!textContent.trim() || loading}
-              className={`mt-3 w-full py-3 rounded-xl font-bold text-white transition-colors ${!textContent.trim() || loading
+              className={`mt-3 w-full py-2.5 sm:py-3 rounded-xl font-bold text-white transition-colors ${!textContent.trim() || loading
                   ? "bg-slate-400 cursor-not-allowed"
                   : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                 }`}
@@ -541,35 +541,35 @@ E. 175 m2"
 
         {/* Preview Section */}
         {parsedQuestions.length > 0 && (
-          <div className="mt-6">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-bold text-slate-700">
+          <div className="mt-4 sm:mt-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-3 sm:mb-4">
+              <h4 className="font-bold text-slate-700 text-sm sm:text-base">
                 📋 Preview Soal ({parsedQuestions.length} soal ditemukan)
               </h4>
-              <span className="text-sm text-slate-500">
+              <span className="text-xs sm:text-sm text-slate-500">
                 Tingkat kesulitan: <strong className="text-blue-600">{difficulty}</strong>
               </span>
             </div>
 
-            <div className="space-y-3 max-h-96 overflow-y-auto border-2 border-slate-200 rounded-xl p-4">
+            <div className="space-y-2 sm:space-y-3 max-h-64 sm:max-h-96 overflow-y-auto border-2 border-slate-200 rounded-xl p-3 sm:p-4">
               {parsedQuestions.map((q, idx) => (
-                <div key={idx} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                <div key={idx} className="border border-slate-200 rounded-lg p-3 sm:p-4 bg-slate-50">
                   <div className="flex justify-between items-start mb-2">
-                    <span className="font-bold text-blue-700 text-sm">
+                    <span className="font-bold text-blue-700 text-xs sm:text-sm">
                       Soal {q.questionNumber || idx + 1}
                     </span>
                     <span className="text-xs font-bold px-2 py-0.5 rounded text-white bg-blue-500">
                       {difficulty}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-700 mb-3 line-clamp-2">{q.content}</p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <p className="text-xs sm:text-sm text-slate-700 mb-2 sm:mb-3 line-clamp-2">{q.content}</p>
+                  <div className="grid grid-cols-2 gap-1 sm:gap-2">
                     {q.options.map((opt, i) => {
                       const letter = String.fromCharCode(65 + i);
                       return (
                         <div
                           key={letter}
-                          className={`text-xs p-2 rounded ${letter === q.answer
+                          className={`text-xs p-1.5 sm:p-2 rounded ${letter === q.answer
                               ? "bg-emerald-100 border border-emerald-400"
                               : "bg-white border border-slate-200"
                             }`}
@@ -589,11 +589,11 @@ E. 175 m2"
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-6 mt-6 border-t border-slate-200">
+        <div className="flex gap-2 sm:gap-3 pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-slate-200">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 border-2 border-slate-200 rounded-xl font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+            className="flex-1 py-2.5 sm:py-3 border-2 border-slate-200 rounded-xl font-semibold text-xs sm:text-sm text-slate-600 hover:bg-slate-50 transition-colors"
           >
             Batal
           </button>
@@ -601,18 +601,18 @@ E. 175 m2"
             type="button"
             onClick={handleImport}
             disabled={parsedQuestions.length === 0 || importing}
-            className={`flex-1 py-3 rounded-xl font-bold text-white transition-colors ${parsedQuestions.length === 0 || importing
+            className={`flex-1 py-2.5 sm:py-3 rounded-xl font-bold text-white transition-colors ${parsedQuestions.length === 0 || importing
                 ? "bg-slate-400 cursor-not-allowed"
                 : "bg-emerald-500 hover:bg-emerald-600"
               }`}
           >
             {importing ? (
               <span className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Menambahkan...
+                <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs sm:text-sm">Menambahkan...</span>
               </span>
             ) : (
-              `Tambahkan ${parsedQuestions.length} Soal`
+              <span className="text-xs sm:text-sm">Tambahkan {parsedQuestions.length} Soal</span>
             )}
           </button>
         </div>

@@ -118,6 +118,11 @@ CREATE POLICY "Allow public select exam_results"
   ON exam_results FOR SELECT TO anon
   USING (true);
 
+-- Izinkan semua orang DELETE (untuk admin hapus hasil)
+CREATE POLICY "Allow public delete exam_results"
+  ON exam_results FOR DELETE TO anon
+  USING (true);
+
 -- questions
 ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
 

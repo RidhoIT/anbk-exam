@@ -153,23 +153,19 @@ export default function ExamPage() {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    if (warningTimerRef.current) {
-      clearTimeout(warningTimerRef.current);
-      warningTimerRef.current = null;
-    }
-    if (warningCountdownRef.current) {
-      clearInterval(warningCountdownRef.current);
-      warningCountdownRef.current = null;
-    }
   }, []);
 
   useEffect(() => {
     if (page === "exam" && studentName) {
       startTimer();
-    } else {
-      stopTimer();
     }
-    return stopTimer;
+    return () => {
+      // Only stop main timer, not warning timers
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [page, studentName]);
 
   // Anti-cheat
@@ -203,39 +199,41 @@ export default function ExamPage() {
       setPage("warning");
       setWarningCountdown(config.warning_countdown);
 
-      // Warning countdown
-      let countdown = config.warning_countdown;
-      let hasTriggeredSubmit = false;
-
-      // Clear any existing timers first
-      if (warningCountdownRef.current) clearInterval(warningCountdownRef.current);
-      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
-
-      warningCountdownRef.current = setInterval(() => {
-        countdown--;
-        setWarningCountdown(countdown);
-        if (countdown <= 0 && !hasTriggeredSubmit) {
-          hasTriggeredSubmit = true;
-          if (warningCountdownRef.current) clearInterval(warningCountdownRef.current);
-          console.log(`Warning timeout. Submitting with ${newViolations} violations`);
-          isHandlingViolationRef.current = false;
-          handleSubmit(true, newViolations);
-        }
-      }, 1000);
-
-      // Auto submit timeout (only trigger if countdown hasn't already submitted)
-      warningTimerRef.current = setTimeout(() => {
-        if (!hasTriggeredSubmit) {
-          hasTriggeredSubmit = true;
-          console.log(`Auto submit timeout. Submitting with ${newViolations} violations`);
-          isHandlingViolationRef.current = false;
-          handleSubmit(true, newViolations);
-        }
-      }, config.warning_countdown * 1000);
+      console.log(`Warning page set, countdown will start from ${config.warning_countdown}`);
 
       return newViolations;
     });
-  }, [stopTimer, handleSubmit, config.max_violations, config.warning_countdown]);
+  }, [config.max_violations, config.warning_countdown]);
+
+  // Warning countdown effect - runs only when on warning page
+  useEffect(() => {
+    if (page !== "warning") return;
+
+    console.log(`Warning page mounted, starting countdown from ${warningCountdown}`);
+
+    const countdownInterval = setInterval(() => {
+      setWarningCountdown((prev) => {
+        const next = prev - 1;
+        console.log(`Countdown tick: ${prev} → ${next}`);
+        return next;
+      });
+    }, 1000);
+
+    return () => {
+      console.log("Cleaning up countdown interval");
+      clearInterval(countdownInterval);
+    };
+  }, [page]);
+
+  // Auto-submit when countdown reaches 0
+  useEffect(() => {
+    if (page !== "warning") return;
+    if (warningCountdown <= 0) {
+      console.log(`Countdown reached 0, submitting...`);
+      isHandlingViolationRef.current = false;
+      handleSubmit(true, violations);
+    }
+  }, [warningCountdown, page]);
 
   useEffect(() => {
     if (!studentName) return;
@@ -243,7 +241,6 @@ export default function ExamPage() {
     const onVisibilityChange = () => {
       if (document.hidden && page === "exam") {
         console.log("Visibility change detected - tab hidden");
-        stopTimer();
         triggerViolation();
       }
     };
@@ -251,7 +248,6 @@ export default function ExamPage() {
     const onBlur = () => {
       if (page === "exam") {
         console.log("Blur event detected - window lost focus");
-        stopTimer();
         triggerViolation();
       }
     };
@@ -282,10 +278,10 @@ export default function ExamPage() {
   }, [page, studentName, triggerViolation]);
 
   function returnToExam() {
-    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
-    if (warningCountdownRef.current) clearInterval(warningCountdownRef.current);
     isHandlingViolationRef.current = false;
+    setWarningCountdown(config.warning_countdown);
     setPage("exam");
+    startTimer();
   }
 
   async function handleSubmit(forced = false, explicitViolations?: number) {
@@ -417,10 +413,10 @@ export default function ExamPage() {
   // Show loading state while fetching questions
   if (loadingQuestions) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="bg-white rounded-2xl shadow-2xl p-12 text-center animate-fadeIn">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">Memuat Soal...</h2>
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 sm:p-12 text-center animate-fadeIn w-full max-w-md">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4 sm:mb-6" />
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2">Memuat Soal...</h2>
           <p className="text-slate-500 text-sm">Soal ujian sedang dimuat dari database</p>
         </div>
       </div>
@@ -431,32 +427,32 @@ export default function ExamPage() {
   if (page === "warning") {
     return (
       <div
-        className="h-screen w-screen flex items-center justify-center p-6 animate-warningPulse"
+        className="h-screen w-screen flex items-center justify-center p-4 sm:p-6 animate-warningPulse"
         style={{ backgroundColor: "#dc2626" }}
       >
-        <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-lg w-full text-center animate-fadeIn">
-          <svg className="w-24 h-24 mx-auto text-red-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-10 max-w-lg w-full text-center animate-fadeIn mx-4">
+          <svg className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 mx-auto text-red-600 mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
 
-          <h1 className="text-4xl font-extrabold text-red-600 mb-2">⚠️ PERINGATAN!</h1>
-          <p className="text-xl font-bold text-slate-800 mb-6">JANGAN PINDAH TAB!</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-red-600 mb-2">⚠️ PERINGATAN!</h1>
+          <p className="text-base sm:text-xl font-bold text-slate-800 mb-4 sm:mb-6">JANGAN PINDAH TAB!</p>
 
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <div
-              className="text-8xl font-black text-red-600 leading-none animate-countdownBounce"
+              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-red-600 leading-none animate-countdownBounce"
               style={{ textShadow: "0 0 20px rgba(220,38,38,0.4)" }}
             >
               {warningCountdown}
             </div>
-            <p className="text-slate-600 mt-2">detik untuk kembali</p>
+            <p className="text-slate-600 text-sm sm:text-base mt-2">detik untuk kembali</p>
           </div>
 
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-            <p className="font-bold text-slate-800">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
+            <p className="font-bold text-slate-800 text-sm sm:text-base">
               Pelanggaran ke-{violations} dari {config.max_violations}
             </p>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="text-xs sm:text-sm text-slate-600 mt-1">
               {violations >= config.max_violations - 1
                 ? "PERINGATAN TERAKHIR! Pelanggaran lagi = langsung submit!"
                 : `Sisa ${config.max_violations - violations} pelanggaran lagi`}
@@ -465,12 +461,12 @@ export default function ExamPage() {
 
           <button
             onClick={returnToExam}
-            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] text-lg shadow-lg"
+            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 sm:py-4 rounded-xl transition-all transform hover:scale-[1.02] text-base sm:text-lg shadow-lg"
           >
             KEMBALI KE UJIAN
           </button>
 
-          <p className="text-xs text-slate-500 mt-4">
+          <p className="text-xs text-slate-500 mt-3 sm:mt-4">
             Jika tidak klik tombol dalam {config.warning_countdown} detik, ujian otomatis disubmit
           </p>
         </div>
@@ -481,10 +477,10 @@ export default function ExamPage() {
   // ── SUBMITTING PAGE ───────────────────────────────────────────────
   if (page === "submitting") {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="bg-white rounded-2xl shadow-2xl p-12 text-center animate-fadeIn">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">Menyimpan Hasil...</h2>
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 sm:p-12 text-center animate-fadeIn w-full max-w-md">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4 sm:mb-6" />
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2">Menyimpan Hasil...</h2>
           <p className="text-slate-500 text-sm">Data ujian sedang disimpan ke database</p>
         </div>
       </div>
@@ -495,31 +491,31 @@ export default function ExamPage() {
   return (
     <div className="h-screen flex flex-col bg-slate-100">
       {/* Header */}
-      <div className="bg-blue-700 shadow-md px-6 py-3 flex justify-between items-center flex-shrink-0">
-        <div className="text-white min-w-0">
-          <h2 className="font-bold text-sm truncate">{config.exam_title}</h2>
-          <p className="text-blue-200 text-xs mt-0.5">
-            {studentName} ({studentNisn}) — {studentClass}
+      <div className="bg-blue-700 shadow-md px-3 sm:px-4 md:px-6 py-2 sm:py-3 flex justify-between items-center flex-shrink-0">
+        <div className="text-white min-w-0 flex-1">
+          <h2 className="font-bold text-xs sm:text-sm truncate">{config.exam_title}</h2>
+          <p className="text-blue-200 text-[10px] sm:text-xs mt-0.5 truncate hidden sm:block">
+            {studentName} {studentNisn && `(${studentNisn})`} — {studentClass}
           </p>
         </div>
-        <div className="text-right flex-shrink-0 ml-4">
-          <p className="text-blue-200 text-xs mb-0.5">Sisa Waktu</p>
+        <div className="text-right flex-shrink-0 ml-3 sm:ml-4">
+          <p className="text-blue-200 text-[10px] sm:text-xs mb-0.5">Sisa Waktu</p>
           <p
-            className={`font-mono font-bold text-xl ${
+            className={`font-mono font-bold text-lg sm:text-xl ${
               timeLeft <= 300 ? "text-red-300 animate-countdownBounce" : "text-white"
             }`}
           >
             {formatTime(timeLeft)}
           </p>
-          <p className="text-blue-200 text-xs mt-0.5">
+          <p className="text-blue-200 text-[10px] sm:text-xs mt-0.5">
             Pelanggaran: {violations}/{config.max_violations}
           </p>
         </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-56 bg-white border-r border-slate-200 p-4 overflow-y-auto flex-shrink-0">
+        {/* Sidebar - Hidden on mobile, shown on md+ */}
+        <div className="hidden md:block w-56 bg-white border-r border-slate-200 p-3 sm:p-4 overflow-y-auto flex-shrink-0">
           {/* Legend */}
           <div className="mb-4 space-y-1.5">
             <p className="text-xs font-bold text-slate-600 mb-2">Status Jawaban</p>
@@ -545,7 +541,7 @@ export default function ExamPage() {
                   <button
                     key={idx}
                     onClick={() => setCurrentQuestion(idx)}
-                    className={`sidebar-num w-9 h-9 rounded text-xs font-bold flex items-center justify-center transition-all
+                    className={`sidebar-num w-8 h-8 rounded text-xs font-bold flex items-center justify-center transition-all
                       ${isActive ? "ring-2 ring-offset-1 ring-blue-400" : ""}
                       ${status === "answered" ? "bg-blue-700 text-white" : ""}
                       ${status === "doubtful" ? "bg-red-500 text-white" : ""}
@@ -561,9 +557,37 @@ export default function ExamPage() {
         </div>
 
         {/* Main */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
+          {/* Mobile question navigator */}
+          <div className="md:hidden bg-white rounded-xl shadow-sm border border-slate-200 p-3 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-slate-600">Soal {currentQuestion + 1}/{questions.length}</span>
+              <span className="text-xs text-slate-500">{answeredCount} dijawab</span>
+            </div>
+            <div className="flex gap-1 overflow-x-auto pb-1">
+              {questions.map((_, idx) => {
+                const status = getAnswerStatus(idx, answers, doubtful);
+                const isActive = idx === currentQuestion;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentQuestion(idx)}
+                    className={`flex-shrink-0 w-8 h-8 rounded text-xs font-bold transition-all
+                      ${isActive ? "ring-2 ring-offset-1 ring-blue-400" : ""}
+                      ${status === "answered" ? "bg-blue-700 text-white" : ""}
+                      ${status === "doubtful" ? "bg-red-500 text-white" : ""}
+                      ${status === "unanswered" ? "bg-slate-200 text-slate-600" : ""}
+                    `}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-4 animate-fadeIn">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 md:p-8 mb-4 animate-fadeIn">
               {/* Question header */}
               <div className="flex items-center gap-3 mb-5">
                 <span
@@ -630,11 +654,11 @@ export default function ExamPage() {
             </div>
 
             {/* Navigation */}
-            <div className="flex justify-between gap-3">
+            <div className="flex justify-between gap-2 sm:gap-3">
               <button
                 onClick={() => setCurrentQuestion((p) => Math.max(0, p - 1))}
                 disabled={currentQuestion === 0}
-                className="px-5 py-2.5 bg-white border-2 border-slate-200 rounded-xl font-semibold text-slate-600 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="flex-1 px-3 sm:px-5 py-2.5 sm:py-3 bg-white border-2 border-slate-200 rounded-xl font-semibold text-xs sm:text-sm text-slate-600 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
                 ← Sebelumnya
               </button>
@@ -642,14 +666,14 @@ export default function ExamPage() {
               {currentQuestion === questions.length - 1 ? (
                 <button
                   onClick={() => setShowConfirm(true)}
-                  className="px-7 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-all shadow-md"
+                  className="flex-1 px-3 sm:px-7 py-2.5 sm:py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-all shadow-md text-xs sm:text-sm"
                 >
-                  SELESAI UJIAN
+                  SELESAI
                 </button>
               ) : (
                 <button
                   onClick={() => setCurrentQuestion((p) => Math.min(questions.length - 1, p + 1))}
-                  className="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl transition-all"
+                  className="flex-1 px-3 sm:px-5 py-2.5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl transition-all text-xs sm:text-sm"
                 >
                   Selanjutnya →
                 </button>
@@ -661,25 +685,25 @@ export default function ExamPage() {
 
       {/* Confirm Submit Modal */}
       {showConfirm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-fadeIn">
-            <h3 className="text-xl font-bold text-slate-800 mb-3">Konfirmasi Submit</h3>
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-3 sm:p-4" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl animate-fadeIn mx-4">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-3">Konfirmasi Submit</h3>
             {unanswered > 0 && (
-              <p className="text-slate-600 mb-2">
+              <p className="text-slate-600 text-sm mb-2">
                 Anda masih memiliki <strong className="text-red-600">{unanswered} soal</strong> yang belum dijawab.
               </p>
             )}
-            <p className="text-slate-600 mb-6">Apakah Anda yakin ingin menyelesaikan ujian?</p>
-            <div className="flex gap-3">
+            <p className="text-slate-600 text-sm sm:text-base mb-6">Apakah Anda yakin ingin menyelesaikan ujian?</p>
+            <div className="flex gap-2 sm:gap-3">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 py-3 rounded-xl border-2 border-slate-200 font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                className="flex-1 py-2.5 sm:py-3 rounded-xl border-2 border-slate-200 font-semibold text-xs sm:text-sm text-slate-600 hover:bg-slate-50 transition-colors"
               >
                 Batal
               </button>
               <button
                 onClick={() => { setShowConfirm(false); handleSubmit(); }}
-                className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-colors"
+                className="flex-1 py-2.5 sm:py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-colors text-xs sm:text-sm"
               >
                 Ya, Submit
               </button>
